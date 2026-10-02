@@ -9,6 +9,7 @@ use Asignua\FilamentSpreadsheetGrid\SpreadsheetGrid;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\QueryException;
 use Illuminate\Validation\ValidationException;
@@ -98,6 +99,7 @@ class GridSaver
         }
 
         $this->write($ready, $records, $result);
+        $this->readBack($ready, $records, $result);
 
         return $result;
     }
@@ -251,14 +253,49 @@ class GridSaver
             return null;
         }
 
-        $column->clearCachedState();
-        $current = $column->toCellString($column->getState());
+        $current = $column->getCurrentCellString();
 
         if ($current === $this->originals[$key][$field]) {
             return null;
         }
 
         return __('spreadsheet-grid::messages.conflict', ['value' => $column->toDisplayString($current)]);
+    }
+
+    /**
+     * The stored value of every sent cell of the saved rows, as the grid would render it:
+     * it is the original the client compares against on the next save, so it must be what
+     * the next render shows, not the text that was sent.
+     *
+     * @param array<string, array<string, mixed>> $ready
+     * @param array<string, Model>                $records
+     */
+    protected function readBack(array $ready, array $records, GridResult $result): void
+    {
+        foreach ($result->saved as $key) {
+            $record = $records[$key] ?? null;
+
+            if (!$record instanceof Model || !isset($ready[$key])) {
+                continue;
+            }
+
+            try {
+                // From the database: a mutator, a cast or saveUsing() may have stored
+                // something else than the in-memory model holds.
+                $record->refresh();
+            } catch (ModelNotFoundException) {
+                // saveUsing() deleted it (or moved it out of reach): nothing to read back.
+                continue;
+            }
+
+            foreach (array_keys($ready[$key]) as $field) {
+                $column = $this->columns[$field] ?? null;
+
+                if ($column instanceof GridColumn) {
+                    $result->values[$key][$field] = (clone $column)->record($record)->getCurrentCellString();
+                }
+            }
+        }
     }
 
     /**

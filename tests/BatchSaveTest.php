@@ -15,7 +15,7 @@ class BatchSaveTest extends TestCase
      * @param class-string<ListProducts>          $page
      * @param array<string, array<string, mixed>> $changes
      *
-     * @return array{saved: list<string>, errors: array<string, array<string, list<string>>>}
+     * @return array{saved: list<string>, errors: array<string, array<string, list<string>>>, values: array<string, array<string, string>>}
      */
     private function save(array $changes, string $page = ListProducts::class): array
     {

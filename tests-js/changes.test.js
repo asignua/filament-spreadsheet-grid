@@ -119,3 +119,47 @@ test('if the in-flight save is refused or fails, editing back to the loaded valu
     failed.abortInFlight()
     assert.equal(failed.isDirty('1', 'name'), false)
 })
+
+test('a cell edited again during its save takes the value the server stored as its original', () => {
+    const changes = new ChangeSet()
+
+    // Loaded "10.00", sent "10": the decimal column stores and renders "10.00" again.
+    changes.set('1', 'price', '12', '10.50')
+
+    const sent = changes.toPayload()
+
+    changes.markInFlight(sent)
+    changes.set('1', 'price', '11', '10.50')
+    changes.applyResult(sent, { saved: ['1'], values: { 1: { price: '12.00' } } })
+
+    assert.equal(changes.get('1', 'price').value, '11')
+    assert.deepEqual(changes.toOriginals(), { 1: { price: '12.00' } })
+})
+
+test('a saved cell is clean even when the server stored it in another form', () => {
+    const changes = new ChangeSet()
+
+    changes.set('1', 'price', '10', '9.00')
+    changes.set('1', 'stock', '5.0', '4')
+
+    const sent = changes.toPayload()
+
+    changes.markInFlight(sent)
+    changes.applyResult(sent, { saved: ['1'], values: { 1: { price: '10.00', stock: '5' } } })
+
+    assert.equal(changes.size, 0)
+})
+
+test('editing back to the stored form during the save leaves the cell clean', () => {
+    const changes = new ChangeSet()
+
+    changes.set('1', 'price', '10', '9.00')
+
+    const sent = changes.toPayload()
+
+    changes.markInFlight(sent)
+    changes.set('1', 'price', '10.00', '9.00')
+    changes.applyResult(sent, { saved: ['1'], values: { 1: { price: '10.00' } } })
+
+    assert.equal(changes.isDirty('1', 'price'), false)
+})

@@ -181,7 +181,7 @@ trait InteractsWithSpreadsheetGrid
      * @param array<mixed> $originals `[recordKey => [column => value as loaded]]`, for conflict detection
      * @param bool         $autosave  a save fired by autosave: only failures are notified
      *
-     * @return array{saved: list<string>, errors: array<string, array<string, list<string>>>}
+     * @return array{saved: list<string>, errors: array<string, array<string, list<string>>>, values: array<string, array<string, string>>}
      */
     public function saveSpreadsheetGrid(array $changes, array $originals = [], bool $autosave = false): array
     {

@@ -97,13 +97,13 @@ abstract class TestCase extends Orchestra
      * @param array<array-key, array<string, string>> $originals
      * @param array<string, mixed>                    $params    mount parameters
      *
-     * @return array{saved: list<string>, errors: array<string, array<string, list<string>>>}
+     * @return array{saved: list<string>, errors: array<string, array<string, list<string>>>, values: array<string, array<string, string>>}
      */
     protected function callSave(string $component, array $changes, array $originals = [], bool $autosave = false, array $params = [], ?Testable &$testable = null): array
     {
         $testable = Livewire::test($component, $params)->call('saveSpreadsheetGrid', $changes, $originals, $autosave);
 
-        /** @var array{saved: list<string>, errors: array<string, array<string, list<string>>>} */
+        /** @var array{saved: list<string>, errors: array<string, array<string, list<string>>>, values: array<string, array<string, string>>} */
         return $testable->effects['returns'][0];
     }
 

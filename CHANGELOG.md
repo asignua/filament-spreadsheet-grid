@@ -22,8 +22,10 @@ All notable changes to `asignua/filament-spreadsheet-grid` are documented here.
 - `$spreadsheetGridActive` is `#[Locked]`; the mode switch is documented as UX, not access control.
 - Select options are evaluated once per request unless the closure asks for the record; record-dependent options are
   sent per cell (`data-sg-options`, `optionsPerRecord` in the column config) and are never evaluated without a record.
-- A cell edited again while its save is in flight takes the saved value as its original, so the next save is not
-  refused as a conflict with the user's own change.
+- A cell edited again while its save is in flight takes the stored value as its original, so the next save is not
+  refused as a conflict with the user's own change. `saveSpreadsheetGrid()` returns `values` — every sent cell of a saved
+  row read back from the database as the grid renders it — so casts, mutators, `emptyAs()` and `saveUsing()`
+  transformations (`10` stored as `10.00`) do not turn into a self-conflict.
 - Conflict detection is documented as best effort (no row lock); only `ValidationException` / `QueryException` are
   isolated per row, any other exception rolls back the batch.
 - Autosave notifies only failures; a failed request marks every sent row; `wire:navigate` asks before dropping edits.

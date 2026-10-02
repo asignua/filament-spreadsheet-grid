@@ -484,3 +484,33 @@ test('client validation agrees with the server on integers and lengths', () => {
     assert.equal(g.controller.validate({ type: 'text', maxLength: 2 }, '😀😀'), null)
     assert.equal(g.controller.validate({ type: 'text', maxLength: 2 }, '😀😀😀'), 'Max 2 chars')
 })
+
+test('after an in-flight re-edit, the next save carries the stored value as the original', async () => {
+    let release
+    const g = setup({
+        save: async (payload) => {
+            if (g.sent.length === 1) {
+                await new Promise((resolve) => (release = resolve))
+
+                // The decimal column stores "7" as "7.00".
+                return { saved: Object.keys(payload), values: { 1: { price: '7.00' } } }
+            }
+
+            return { saved: Object.keys(payload) }
+        },
+    })
+
+    g.click(g.cell('1', 'price'))
+    g.paste('7')
+
+    const first = g.controller.save()
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    g.paste('8')
+    release()
+    await first
+    await g.controller.save()
+
+    assert.deepEqual(g.sent[1], { 1: { price: '8' } })
+    assert.deepEqual(g.meta[1].originals, { 1: { price: '7.00' } })
+})

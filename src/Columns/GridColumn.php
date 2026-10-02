@@ -16,6 +16,7 @@ use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
+use LogicException;
 use ReflectionFunction;
 use ReflectionNamedType;
 use stdClass;
@@ -420,6 +421,29 @@ class GridColumn extends Column
             is_scalar($state), $state instanceof Stringable => (string) $state,
             default => '',
         };
+    }
+
+    /**
+     * What the cell holds for its record right now, read afresh (no cached state): what a
+     * render would put in `data-sg-value`. A column used outside a table (a GridSaver built
+     * by hand) has no table to cache state in and reads the record directly.
+     */
+    public function getCurrentCellString(): string
+    {
+        $this->clearCachedState();
+
+        return $this->toCellString($this->isMountedToTable() ? $this->getState() : $this->getStateFromRecord());
+    }
+
+    protected function isMountedToTable(): bool
+    {
+        try {
+            $this->getTable();
+        } catch (LogicException) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

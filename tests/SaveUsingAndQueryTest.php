@@ -17,7 +17,7 @@ class SaveUsingAndQueryTest extends TestCase
     /**
      * @param array<string, array<string, mixed>> $changes
      *
-     * @return array{saved: list<string>, errors: array<string, array<string, list<string>>>}
+     * @return array{saved: list<string>, errors: array<string, array<string, list<string>>>, values: array<string, array<string, string>>}
      */
     private function save(array $changes): array
     {

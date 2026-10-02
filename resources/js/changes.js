@@ -183,12 +183,13 @@ export class ChangeSet {
     }
 
     /**
-     * Apply a server answer `{saved: [key], errors: {key: {field: [messages]}}}` for the
-     * payload that was sent: saved rows are forgotten, failed cells keep their value and
-     * get the message, every other sent cell loses a stale error.
+     * Apply a server answer `{saved: [key], errors: {key: {field: [messages]}}, values:
+     * {key: {field: stored}}}` for the payload that was sent: saved rows are forgotten,
+     * failed cells keep their value and get the message, every other sent cell loses a
+     * stale error.
      *
      * @param {Object<string, Object<string, string>>} sent
-     * @param {{saved?: string[], errors?: Object<string, Object<string, string[]>>}} result
+     * @param {{saved?: string[], errors?: Object<string, Object<string, string[]>>, values?: Object<string, Object<string, string>>}} result
      */
     applyResult(sent, result) {
         const saved = new Set((result.saved ?? []).map(String))
@@ -207,10 +208,21 @@ export class ChangeSet {
                 }
 
                 if (saved.has(key)) {
-                    // The stored value is now what was sent: forget the cell, or, when it was
-                    // edited again in the meantime, move its original forward so the next save
-                    // is not refused as a conflict with the user's own change.
-                    entry.original = value
+                    // Not edited since: what was sent is stored, the cell is clean, even when
+                    // the server stored it in another form ("10" as "10.00").
+                    if (entry.value === norm(value)) {
+                        this.#remove(key, field)
+
+                        continue
+                    }
+
+                    // Edited again in the meantime: its original moves forward to the value
+                    // the server read back after the save (what the next render shows and
+                    // what the next conflict check compares against), so the next save is
+                    // not refused as a conflict with the user's own change.
+                    const stored = result.values?.[key]?.[field]
+
+                    entry.original = norm(stored === undefined ? value : stored)
                 }
 
                 if (entry.value === entry.original) {
