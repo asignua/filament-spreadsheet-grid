@@ -29,7 +29,7 @@ edited:
   reported **per row and cell**; **Discard** drops it all. Optional **autosave** per cell.
 - **Your write path**: `->saveUsing(fn (Model $record, array $changes) => ...)` for repositories, DTOs and models without
   mass assignment. The default writes attributes explicitly (never `fill()`).
-- **Policies**: every record is checked against its `update` policy ability (or your callback) on render **and** on save.
+- **Authorization**: every record is checked with the same gate Filament uses for its Edit action (the resource's `canEdit()`, a relation manager's `canEdit()` / read-only state, the `update` policy) or your callback, on render **and** on save.
 
 - [Screenshots](#screenshots)
 - [Requirements](#requirements)
@@ -136,11 +136,15 @@ GridColumn::make('title')->required()->maxLength(120)->emptyAs('');   // text
 GridColumn::make('price')->number(min: 0, max: 99999)->rules(['decimal:0,2']);
 GridColumn::make('qty')->integer(min: 0);
 GridColumn::make('status')->select(['draft' => 'Draft', 'live' => 'Live']);   // or select(StatusEnum::class)
-GridColumn::make('starts_on')->date('d.m.Y');   // shown as d.m.Y, stored and copied as Y-m-d
+GridColumn::make('starts_on')->date('d.m.Y');   // shown as d.m.Y, stored and copied as Y-m-d (DATE columns only)
 GridColumn::make('is_active')->boolean();
 GridColumn::make('sku')->rules(fn (Product $record) => [Rule::unique('products', 'sku')->ignore($record)]);
 GridColumn::make('code')->editable(fn (Product $record) => ! $record->locked);
+GridColumn::make('cost')->number()->visible(fn () => auth()->user()->isAdmin());   // hidden = not sent, not writable
 ```
+
+A `select()` closure is evaluated **once per request** and shared by every cell. If the options depend on the row, ask for
+the record (`fn (Product $record) => ...`): the closure then runs once per cell, so keep it cheap.
 
 Types normalise what comes from the clipboard: `1 250,5` and `1.250,50` are numbers, `так` / `yes` / `TRUE` are booleans,
 `02.10.2026` is a date, a select is matched by value first and by label second. An emptied cell becomes `null`
@@ -185,7 +189,13 @@ class ListProducts extends ListRecords
   table's **base query** (your resource's `getEloquentQuery()`, tenant scopes, relation constraints) so nothing outside the
   table can be written. User filters and search are **not** applied to the save: a row may leave the filtered view between
   editing and saving and still be saved.
-- Notifications (`->notify(false)` silences them) report "N rows saved / not saved".
+- Notifications (`->notify(false)` silences them) report "N rows saved / not saved". Autosave requests notify only
+  failures, so typing down a column does not stack a toast per cell.
+- **Concurrent edits are not overwritten silently.** With every changed cell the browser sends the value it loaded; when
+  the stored value is different now (another editor saved in between), that cell is refused with a message showing the
+  current value. `->detectConflicts(false)` returns to last-write-wins. The check is per cell: two editors changing
+  different columns of one row do not conflict.
+- The transaction runs on the **model's own connection** (`$connection`), not the default one.
 
 ## Mode switch
 
@@ -201,12 +211,24 @@ protected function spreadsheetGrid(SpreadsheetGrid $grid): SpreadsheetGrid
 
 The toolbar then shows **Edit as spreadsheet**. While the mode is off, grid columns render as plain read-only text (row
 clicks and `recordUrl()` work) and `saveSpreadsheetGrid()` refuses writes. The button becomes **Done**, or **Discard and
-exit** (with a confirmation) when there are unsaved edits. The choice lives in the Livewire component (`$spreadsheetGridActive`);
-`persist: true` also remembers it in the session per component class.
+exit** (with a confirmation) when there are unsaved edits. The choice lives in the Livewire component (`$spreadsheetGridActive`,
+`#[Locked]`, changed only through `toggleSpreadsheetGrid()`); `persist: true` also remembers it in the session per
+component class.
+
+The mode switch is **UX, not access control**: anyone who can call the component can switch the mode on. What guards
+the writes is authorization (below), hidden columns and `editable()`.
 
 ## Authorization
 
-Each record is checked with its `update` policy ability: no policy means editable (like Filament resources). Replace it:
+By default the grid asks the gate Filament itself asks for the Edit action of that table:
+
+- on a resource page (List records): the resource's `canEdit($record)`, so a `canEdit()` override counts;
+- in a relation manager / "manage related records" page: its `canEdit($record)`, and a relation manager on a **View**
+  page is read-only (Filament's `readOnlyRelationManagersOnResourceViewPagesByDefault()`);
+- anywhere else (a table widget, a custom page): the `update` policy ability, through Filament. No policy means
+  editable, unless the panel uses `strictAuthorization()`, which refuses (with Filament's exception) as it does everywhere.
+
+Replace it:
 
 ```php
 $grid->authorizeUsing(fn (Product $record): bool => auth()->user()->can('update', $record));
@@ -235,7 +257,10 @@ Over a limit nothing is saved and every row gets a message.
 - **Do not combine with `recordUrl()` / `recordAction()`** on the same table: a click on a cell is meant to select it.
   Clicks on cells do not propagate to the row, but a row link is still the wrong UX for a grid.
 - **Pending edits live in the browser.** They survive filtering, sorting, pagination and Livewire re-renders (they are
-  keyed by record, and repainted after every DOM patch), but not a page reload (the browser warns before leaving).
+  keyed by record, and repainted after every DOM patch), but not a page reload. Leaving the page asks first: the browser
+  warns on a reload or a full navigation, and in `->spa()` panels a `wire:navigate` link asks for confirmation.
+- **`date()` is for DATE columns.** On a datetime column an edit stores the day only and the time becomes `00:00:00`;
+  use a text column, or `saveUsing()` to merge the time back.
 - **Paste only fills the rows on the page**; raise `->defaultPaginationPageOption()` for bigger sheets.
 - **Tables with pivot record keys** (`BelongsToMany` with a pivot key) are not supported: the save looks records up by the
   model key.
