@@ -42,6 +42,7 @@ abstract class TestCase extends Orchestra
         Gate::policy(Product::class, ProductPolicy::class);
         ListScopedProducts::$calls = [];
         ProductResource::$showCost = false;
+        ProductResource::$categoryPerRecord = false;
 
         $this->actingAs(User::factory()->create());
         Filament::setCurrentPanel('admin');

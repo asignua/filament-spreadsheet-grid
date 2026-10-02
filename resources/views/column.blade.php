@@ -12,6 +12,7 @@
         data-sg-field="{{ $cell['field'] }}"
         data-sg-value="{{ $cell['value'] }}"
         @if ($cell['readonly']) data-sg-readonly @endif
+        @if ($cell['options'] !== null) data-sg-options="{{ json_encode($cell['options'], JSON_UNESCAPED_UNICODE) }}" @endif
         role="gridcell"
         tabindex="-1"
     >

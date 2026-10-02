@@ -14,6 +14,13 @@ export class ChangeSet {
         this.rows = new Map()
         /** @type {Map<string, Map<string, string[]>>} */
         this.errors = new Map()
+        /**
+         * The payload of the save request in flight, if any: until it answers, the page still
+         * shows the old values, so "back to the original" may not be "back to what is stored".
+         *
+         * @type {Object<string, Object<string, string>>|null}
+         */
+        this.inFlight = null
     }
 
     /**
@@ -23,7 +30,11 @@ export class ChangeSet {
         const next = norm(value)
         const before = norm(original)
 
-        if (next === before) {
+        // Edited back to the loaded value while a different one is being saved: that is
+        // still a change (it has to undo the save), so it is kept.
+        const sending = this.inFlight?.[key]?.[field]
+
+        if (next === before && (sending === undefined || norm(sending) === next)) {
             this.#remove(key, field)
 
             return false
@@ -108,6 +119,31 @@ export class ChangeSet {
         return originals
     }
 
+    /** Remember the payload of the request that is about to go out (see set()). */
+    markInFlight(sent) {
+        this.inFlight = sent
+    }
+
+    /**
+     * The request failed: nothing was stored, so a cell edited back to its loaded value
+     * meanwhile is clean again.
+     */
+    abortInFlight() {
+        const sent = this.inFlight ?? {}
+
+        this.inFlight = null
+
+        for (const [key, fields] of Object.entries(sent)) {
+            for (const field of Object.keys(fields)) {
+                const entry = this.get(key, field)
+
+                if (entry && entry.value === entry.original) {
+                    this.#remove(key, field)
+                }
+            }
+        }
+    }
+
     setError(key, field, messages) {
         const list = Array.isArray(messages) ? messages : [String(messages)]
 
@@ -143,6 +179,7 @@ export class ChangeSet {
     clear() {
         this.rows.clear()
         this.errors.clear()
+        this.inFlight = null
     }
 
     /**
@@ -157,15 +194,27 @@ export class ChangeSet {
         const saved = new Set((result.saved ?? []).map(String))
         const errors = result.errors ?? {}
 
+        this.inFlight = null
+
         for (const key of Object.keys(sent)) {
             this.errors.delete(key)
 
-            if (saved.has(key)) {
-                // Keep what was edited again while the request was in flight.
-                for (const [field, value] of Object.entries(sent[key])) {
-                    if (this.get(key, field)?.value === value) {
-                        this.#remove(key, field)
-                    }
+            for (const [field, value] of Object.entries(sent[key])) {
+                const entry = this.get(key, field)
+
+                if (!entry) {
+                    continue
+                }
+
+                if (saved.has(key)) {
+                    // The stored value is now what was sent: forget the cell, or, when it was
+                    // edited again in the meantime, move its original forward so the next save
+                    // is not refused as a conflict with the user's own change.
+                    entry.original = value
+                }
+
+                if (entry.value === entry.original) {
+                    this.#remove(key, field)
                 }
             }
         }

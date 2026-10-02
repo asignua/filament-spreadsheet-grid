@@ -7,6 +7,7 @@ namespace Asignua\FilamentSpreadsheetGrid\Tests;
 use Livewire\Livewire;
 use Workbench\App\Filament\Resources\Products\Pages\ListAtomicProducts;
 use Workbench\App\Filament\Resources\Products\Pages\ListProducts;
+use Workbench\App\Filament\Resources\Products\ProductResource;
 
 class RenderTest extends TestCase
 {
@@ -53,6 +54,28 @@ class RenderTest extends TestCase
         Livewire::test(ListProducts::class)
             ->set('tableFilters.available.value', '1')
             ->assertDontSeeHtml('data-sg-key="'.$out->id.'"');
+    }
+
+    public function test_record_dependent_select_options_render_per_cell(): void
+    {
+        ProductResource::$categoryPerRecord = true;
+        $open = $this->product('OPEN', ['category' => 'books']);
+        $this->product('TOY-1', ['category' => 'toys']);
+
+        $html = Livewire::test(ListProducts::class)->html();
+        $config = $this->clientConfig($html);
+
+        // The toolbar has no record: no options evaluated for null, the cells carry them.
+        $this->assertNull($config['columns']['category']['options']);
+        $this->assertTrue($config['columns']['category']['optionsPerRecord']);
+        $this->assertFalse($config['columns']['price']['optionsPerRecord']);
+
+        $this->assertSame(2, preg_match_all('/data-sg-options="([^"]*)"/', $html, $matches));
+        $lists = array_map(fn (string $raw): array => json_decode(html_entity_decode($raw), true, flags: JSON_THROW_ON_ERROR), $matches[1]);
+        $this->assertContains([['value' => 'toys', 'label' => 'Toys'], ['value' => 'books', 'label' => 'Books']], $lists);
+        $this->assertContains([['value' => 'toys', 'label' => 'Toys']], $lists);
+        $this->assertStringContainsString('data-sg-key="'.$open->id.'"', $html);
+        $this->assertStringContainsString('Books', $html);
     }
 
     /**

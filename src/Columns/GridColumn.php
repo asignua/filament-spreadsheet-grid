@@ -257,6 +257,15 @@ class GridColumn extends Column
         return $memo->options ??= $this->resolveOptions();
     }
 
+    /**
+     * Whether the select options are a closure that asks for the row, so there is no single
+     * list for the whole column.
+     */
+    public function hasRecordDependentOptions(): bool
+    {
+        return $this->options instanceof Closure && $this->optionsDependOnRecord($this->options);
+    }
+
     protected function optionsDependOnRecord(Closure $closure): bool
     {
         foreach ((new ReflectionFunction($closure))->getParameters() as $parameter) {
@@ -441,6 +450,10 @@ class GridColumn extends Column
             'display' => $this->toDisplayString($value),
             'active' => $this->isGridActive(),
             'readonly' => !($record instanceof Model && $this->canEditRecord($record)),
+            // Options that depend on the row travel with the cell; the column config has none.
+            'options' => $this->cellType === GridCellType::Select && $this->hasRecordDependentOptions()
+                ? self::optionList($this->getOptions())
+                : null,
         ];
     }
 
@@ -471,11 +484,9 @@ class GridColumn extends Column
      */
     public function toClientConfig(): array
     {
-        $options = [];
-
-        foreach ($this->getOptions() as $value => $label) {
-            $options[] = ['value' => (string) $value, 'label' => $label];
-        }
+        // The toolbar has no record: options that ask for one are never evaluated here
+        // (a typed `Product $record` would get null), they come per cell instead.
+        $perRecord = $this->hasRecordDependentOptions();
 
         return [
             'type' => $this->cellType->value,
@@ -485,8 +496,25 @@ class GridColumn extends Column
             'max' => $this->cellType->isNumeric() ? $this->getMax() : null,
             'maxLength' => $this->getMaxLength(),
             'dateFormat' => $this->dateFormat,
-            'options' => $options,
+            'options' => $perRecord ? null : self::optionList($this->getOptions()),
+            'optionsPerRecord' => $perRecord,
         ];
+    }
+
+    /**
+     * @param array<string, string> $options
+     *
+     * @return list<array{value: string, label: string}>
+     */
+    protected static function optionList(array $options): array
+    {
+        $list = [];
+
+        foreach ($options as $value => $label) {
+            $list[] = ['value' => (string) $value, 'label' => $label];
+        }
+
+        return $list;
     }
 
     /**

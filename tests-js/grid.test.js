@@ -381,6 +381,64 @@ test('each save carries what the client loaded, and says whether autosave fired 
     assert.equal(a.meta[0].auto, true)
 })
 
+test('re-editing a cell while its save is in flight does not conflict with that save', async () => {
+    let release
+    const g = setup({
+        save: async (payload) => {
+            if (g.sent.length === 1) {
+                await new Promise((resolve) => (release = resolve))
+            }
+
+            return { saved: Object.keys(payload) }
+        },
+    })
+
+    g.click(g.cell('1', 'name'))
+    g.paste('Uno')
+
+    const first = g.controller.save()
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    g.paste('Una')
+    release()
+    await first
+    await g.controller.save()
+
+    assert.deepEqual(g.sent[1], { 1: { name: 'Una' } })
+    assert.deepEqual(g.meta[1].originals, { 1: { name: 'Uno' } })
+})
+
+test('record-dependent select options come from the cell, not from the column config', () => {
+    const dom = new JSDOM(
+        `<!doctype html><div class="fi-ta"><table><tbody><tr><td><div data-sg-cell data-sg-key="1" data-sg-field="cat" data-sg-value="a" data-sg-options='[{"value":"a","label":"Alpha"},{"value":"z","label":"Zulu"}]' tabindex="-1"><span class="sg-display">a</span></div></td></tr></tbody></table></div>`,
+        { pretendToBeVisual: true },
+    )
+    const root = dom.window.document.querySelector('.fi-ta')
+    const controller = new GridController({
+        root,
+        columns: { cat: { type: 'select', label: 'Category', options: null, optionsPerRecord: true } },
+        order: ['cat'],
+        save: async () => ({ saved: [] }),
+        messages: { invalid: 'Invalid' },
+    })
+
+    controller.attach()
+
+    const el = root.querySelector('[data-sg-cell]')
+    const cell = controller.cellFrom(el)
+
+    assert.equal(el.querySelector('.sg-display').textContent, 'Alpha')
+    assert.equal(controller.setValue(cell, 'Zulu'), true)
+    assert.equal(controller.changes.get('1', 'cat').value, 'z')
+    assert.equal(controller.changes.errorFor('1', 'cat'), null)
+
+    controller.startEdit(cell)
+    assert.deepEqual(
+        [...root.querySelectorAll('[data-sg-editor] option')].map((option) => option.value),
+        ['', 'a', 'z'],
+    )
+})
+
 test('a failed request marks every sent row, not only the first', async () => {
     const g = setup({ save: () => Promise.reject(new Error('offline')) })
 

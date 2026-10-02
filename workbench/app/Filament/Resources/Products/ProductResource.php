@@ -21,6 +21,9 @@ class ProductResource extends Resource
     /** Who sees the `cost` column (stands for `auth()->user()->isAdmin()`). */
     public static bool $showCost = false;
 
+    /** Category options that depend on the row, written exactly as the README shows them. */
+    public static bool $categoryPerRecord = false;
+
     public static function table(Table $table): Table
     {
         return $table
@@ -31,7 +34,9 @@ class ProductResource extends Resource
                 GridColumn::make('sku')->rules(fn (Product $record): array => [Rule::unique('products', 'sku')->ignore($record)]),
                 GridColumn::make('price')->number(min: 0),
                 GridColumn::make('stock')->integer(min: 0, max: 1000),
-                GridColumn::make('category')->select(['toys' => 'Toys', 'books' => 'Books', '7' => 'Seven']),
+                GridColumn::make('category')->select(static::$categoryPerRecord
+                    ? fn (Product $record): array => str_starts_with($record->sku, 'TOY') ? ['toys' => 'Toys'] : ['toys' => 'Toys', 'books' => 'Books']
+                    : ['toys' => 'Toys', 'books' => 'Books', '7' => 'Seven']),
                 GridColumn::make('released_on')->date('d.m.Y'),
                 GridColumn::make('available')->boolean(),
                 GridColumn::make('locked')->editable(false)->boolean(),

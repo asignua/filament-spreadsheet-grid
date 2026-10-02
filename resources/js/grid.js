@@ -160,6 +160,28 @@ export class GridController {
         return row === -1 || col === -1 ? null : this.cellAt(row, col)
     }
 
+    /**
+     * The column config for one cell. Select options that depend on the row are not in the
+     * column config (the toolbar has no record); the cell carries them in `data-sg-options`.
+     */
+    columnOf(field, el) {
+        const column = this.columns[field]
+
+        if (!column?.optionsPerRecord) {
+            return column
+        }
+
+        let options = []
+
+        try {
+            options = JSON.parse(el?.dataset.sgOptions ?? '[]')
+        } catch {
+            options = []
+        }
+
+        return { ...column, options: Array.isArray(options) ? options : [] }
+    }
+
     isReadonly(cell) {
         return cell.el.hasAttribute('data-sg-readonly')
     }
@@ -189,7 +211,7 @@ export class GridController {
             return false
         }
 
-        const column = this.columns[cell.field]
+        const column = this.columnOf(cell.field, cell.el)
         const { ok, value } = coerceValue(column, raw)
 
         this.changes.set(cell.key, cell.field, value, this.originalOf(cell))
@@ -241,7 +263,7 @@ export class GridController {
             return
         }
 
-        const column = this.columns[cell.field]
+        const column = this.columnOf(cell.field, cell.el)
 
         if (column.type === 'boolean') {
             this.setValue(cell, this.valueOf(cell) === '1' ? '0' : '1')
@@ -537,7 +559,7 @@ export class GridController {
             for (let col = rect.left; col <= rect.right; col++) {
                 const cell = this.cellAt(row, col)
 
-                line.push(cell ? displayValue(this.columns[cell.field], this.valueOf(cell), { forClipboard: true }) : '')
+                line.push(cell ? displayValue(this.columnOf(cell.field, cell.el), this.valueOf(cell), { forClipboard: true }) : '')
             }
 
             rows.push(line)
@@ -618,7 +640,7 @@ export class GridController {
         for (const entry of this.model().rows) {
             for (const [field, el] of entry.cells) {
                 const cell = this.cellFrom(el)
-                const column = this.columns[field]
+                const column = this.columnOf(field, el)
                 const dirty = this.changes.isDirty(entry.key, field)
                 const error = this.changes.errorFor(entry.key, field)
                 const active = focus !== null && cell !== null && cell.row === focus.row && cell.col === focus.col
@@ -688,6 +710,7 @@ export class GridController {
         const sent = this.changes.toPayload()
         const originals = this.changes.toOriginals()
 
+        this.changes.markInFlight(sent)
         this.saving = true
         this.notify()
 
@@ -696,6 +719,8 @@ export class GridController {
 
             this.changes.applyResult(sent, result ?? {})
         } catch (error) {
+            this.changes.abortInFlight()
+
             // A failed request leaves everything dirty and retryable; every sent row says so.
             for (const key of Object.keys(sent)) {
                 this.changes.setError(key, ROW_FIELD, [this.messages.failed ?? String(error)])

@@ -6,6 +6,7 @@ namespace Asignua\FilamentSpreadsheetGrid\Tests;
 
 use Workbench\App\Filament\Resources\Products\Pages\ListAtomicProducts;
 use Workbench\App\Filament\Resources\Products\Pages\ListProducts;
+use Workbench\App\Filament\Resources\Products\ProductResource;
 use Workbench\App\Models\Product;
 
 class BatchSaveTest extends TestCase
@@ -52,6 +53,23 @@ class BatchSaveTest extends TestCase
         $b->refresh();
         $this->assertSame('Beta', $b->name);
         $this->assertNull($b->stock);
+    }
+
+    public function test_record_dependent_select_options_are_checked_against_each_row(): void
+    {
+        ProductResource::$categoryPerRecord = true;
+        $toy = $this->product('TOY-1', ['category' => 'toys']);
+        $any = $this->product('ANY', ['category' => 'toys']);
+
+        $result = $this->save([
+            (string) $toy->id => ['category' => 'books'],
+            (string) $any->id => ['category' => 'books'],
+        ]);
+
+        $this->assertSame([(string) $any->id], $result['saved']);
+        $this->assertArrayHasKey('category', $result['errors'][(string) $toy->id]);
+        $this->assertSame('toys', $toy->refresh()->category);
+        $this->assertSame('books', $any->refresh()->category);
     }
 
     public function test_validation_errors_are_reported_per_row_and_cell_and_valid_rows_still_save(): void
