@@ -20,9 +20,10 @@ export class GridController {
      * @param {Object<string, object>} options.columns  field -> {type, label, options, required, min, max, maxLength, dateFormat}
      * @param {string[]} options.order                  fields in column order
      * @param {() => boolean} [options.autosave]
-     * @param {(payload: object) => Promise<object>} options.save
+     * @param {(payload: object, originals: object, autosave: boolean) => Promise<object>} options.save
      * @param {Object<string, string>} [options.messages]
      * @param {(status: object) => void} [options.onChange]
+     * @param {(text: string) => boolean} [options.confirm]
      */
     constructor(options) {
         this.root = options.root
@@ -32,6 +33,7 @@ export class GridController {
         this.saveRequest = options.save
         this.messages = options.messages ?? {}
         this.onChange = options.onChange ?? (() => {})
+        this.confirm = options.confirm ?? ((text) => this.root.ownerDocument.defaultView?.confirm(text) ?? true)
 
         this.changes = new ChangeSet()
         this.state = initialState()
@@ -71,6 +73,17 @@ export class GridController {
                 if (this.changes.size > 0) {
                     event.preventDefault()
                     event.returnValue = ''
+                }
+            },
+            { signal },
+        )
+
+        // SPA panels (`->spa()`) navigate with wire:navigate, which never fires beforeunload.
+        doc.addEventListener(
+            'livewire:navigate',
+            (event) => {
+                if (this.changes.size > 0 && !this.confirm(this.messages.confirmLeave ?? '')) {
+                    event.preventDefault()
                 }
             },
             { signal },
@@ -198,7 +211,8 @@ export class GridController {
             return column.required ? this.messages.required : null
         }
 
-        if (column.type === 'integer' && !/^-?\d+$/.test(value)) {
+        // Same as the server: "5.0" is the integer 5.
+        if (column.type === 'integer' && !/^-?\d+(\.0+)?$/.test(value)) {
             return this.messages.integer
         }
 
@@ -212,7 +226,8 @@ export class GridController {
             }
         }
 
-        if (column.type === 'text' && column.maxLength && value.length > column.maxLength) {
+        // Code points, like the server's mb_strlen (an emoji is one character, not two).
+        if (column.type === 'text' && column.maxLength && [...value].length > column.maxLength) {
             return (this.messages.maxLength ?? '').replace(':max', column.maxLength)
         }
 
@@ -337,7 +352,7 @@ export class GridController {
         }
 
         if (touched && this.autosave()) {
-            this.save()
+            this.save(true)
         }
 
         return handled
@@ -567,7 +582,7 @@ export class GridController {
         this.paint()
 
         if (written && this.autosave()) {
-            this.save()
+            this.save(true)
         }
     }
 
@@ -654,30 +669,37 @@ export class GridController {
 
     // ---- saving ---------------------------------------------------------------------------
 
-    /** Sends every pending change in ONE request; calls queue up so two saves never overlap. */
-    save() {
-        this.queue = this.queue.then(() => this.send())
+    /**
+     * Sends every pending change in ONE request; calls queue up so two saves never overlap.
+     *
+     * @param {boolean} auto  fired by autosave (the server then only notifies failures)
+     */
+    save(auto = false) {
+        this.queue = this.queue.then(() => this.send(auto))
 
         return this.queue
     }
 
-    async send() {
+    async send(auto = false) {
         if (this.changes.size === 0) {
             return
         }
 
         const sent = this.changes.toPayload()
+        const originals = this.changes.toOriginals()
 
         this.saving = true
         this.notify()
 
         try {
-            const result = await this.saveRequest(sent)
+            const result = await this.saveRequest(sent, originals, auto)
 
             this.changes.applyResult(sent, result ?? {})
         } catch (error) {
-            // A failed request leaves everything dirty and retryable.
-            this.changes.setError(Object.keys(sent)[0], ROW_FIELD, [this.messages.failed ?? String(error)])
+            // A failed request leaves everything dirty and retryable; every sent row says so.
+            for (const key of Object.keys(sent)) {
+                this.changes.setError(key, ROW_FIELD, [this.messages.failed ?? String(error)])
+            }
         } finally {
             this.saving = false
             this.paint()

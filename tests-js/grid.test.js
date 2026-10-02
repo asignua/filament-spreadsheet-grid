@@ -33,24 +33,27 @@ function html() {
     return `<!doctype html><div class="fi-ta"><input id="search" /><table><tbody>${body}</tbody></table></div>`
 }
 
-function setup({ save, autosave = false } = {}) {
+function setup({ save, autosave = false, confirm } = {}) {
     const dom = new JSDOM(html(), { pretendToBeVisual: true })
     const { window } = dom
     const root = window.document.querySelector('.fi-ta')
     const status = {}
     const sent = []
+    const meta = []
     const controller = new GridController({
         root,
         columns,
         order,
         autosave: () => autosave,
-        save: async (payload) => {
+        save: async (payload, originals, auto) => {
             sent.push(payload)
+            meta.push({ originals, auto })
 
             return save ? save(payload) : { saved: Object.keys(payload), errors: {} }
         },
         messages: { required: 'Required', invalid: 'Invalid', integer: 'Integer', min: 'Min :min', max: 'Max :max', maxLength: 'Max :max chars', failed: 'Failed' },
         onChange: (s) => Object.assign(status, s),
+        confirm,
     })
 
     controller.attach()
@@ -88,7 +91,7 @@ function setup({ save, autosave = false } = {}) {
         return data
     }
 
-    return { window, root, controller, status, sent, cell, key, click, active, type, paste, copy }
+    return { window, root, controller, status, sent, meta, cell, key, click, active, type, paste, copy }
 }
 
 test('clicking a cell activates it and focuses it; arrows move', () => {
@@ -356,4 +359,70 @@ test('the grid is one tab stop and tabbing into it selects that cell', () => {
     g.cell('1', 'name').focus()
 
     assert.ok(g.cell('1', 'name').classList.contains('sg-active'))
+})
+
+test('each save carries what the client loaded, and says whether autosave fired it', async () => {
+    const g = setup()
+
+    g.click(g.cell('1', 'name'))
+    g.paste('Uno\t5')
+    await g.controller.save()
+
+    assert.deepEqual(g.meta[0], { originals: { 1: { name: 'One', price: '1.00' } }, auto: false })
+
+    const a = setup({ autosave: true })
+
+    a.click(a.cell('1', 'name'))
+    a.key(a.active(), 'Enter')
+    a.type('Auto')
+    a.key(a.root.querySelector('[data-sg-editor]'), 'Enter')
+    await a.controller.queue
+
+    assert.equal(a.meta[0].auto, true)
+})
+
+test('a failed request marks every sent row, not only the first', async () => {
+    const g = setup({ save: () => Promise.reject(new Error('offline')) })
+
+    g.click(g.cell('1', 'name'))
+    g.paste('Uno\nDos')
+    await g.controller.save()
+
+    assert.equal(g.cell('1', 'name').getAttribute('data-sg-error'), 'Failed')
+    assert.equal(g.cell('2', 'name').getAttribute('data-sg-error'), 'Failed')
+    assert.equal(g.status.dirty, 2)
+})
+
+test('SPA navigation (wire:navigate) asks before dropping pending edits', () => {
+    let answer = false
+    const asked = []
+    const g = setup({ confirm: (text) => (asked.push(text), answer) })
+    const navigate = () => {
+        const event = new g.window.Event('livewire:navigate', { cancelable: true })
+
+        g.window.document.dispatchEvent(event)
+
+        return event
+    }
+
+    assert.equal(navigate().defaultPrevented, false)
+    assert.equal(asked.length, 0)
+
+    g.click(g.cell('1', 'name'))
+    g.paste('Uno')
+
+    assert.equal(navigate().defaultPrevented, true)
+    answer = true
+    assert.equal(navigate().defaultPrevented, false)
+    assert.equal(asked.length, 2)
+})
+
+test('client validation agrees with the server on integers and lengths', () => {
+    const g = setup()
+
+    assert.equal(g.controller.validate({ type: 'integer' }, '5.0'), null)
+    assert.equal(g.controller.validate({ type: 'integer' }, '5.5'), 'Integer')
+    // An emoji is one character, as for the server's mb_strlen.
+    assert.equal(g.controller.validate({ type: 'text', maxLength: 2 }, '😀😀'), null)
+    assert.equal(g.controller.validate({ type: 'text', maxLength: 2 }, '😀😀😀'), 'Max 2 chars')
 })

@@ -28,7 +28,8 @@ export default function spreadsheetGrid(config, $wire) {
                 order: config.order,
                 messages: config.messages,
                 autosave: () => this.autosave,
-                save: (payload) => $wire.saveSpreadsheetGrid(payload),
+                save: (payload, originals, auto) => $wire.saveSpreadsheetGrid(payload, originals, auto),
+                confirm: config.confirm,
                 onChange: (status) => Object.assign(this, status),
             })
 

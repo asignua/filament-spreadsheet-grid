@@ -88,6 +88,26 @@ export class ChangeSet {
         return payload
     }
 
+    /**
+     * What the client loaded for every dirty cell, so the server can spot a value someone
+     * else changed in the meantime.
+     *
+     * @returns {Object<string, Object<string, string>>}  { recordKey: { field: original } }
+     */
+    toOriginals() {
+        const originals = {}
+
+        for (const [key, fields] of this.rows) {
+            originals[key] = {}
+
+            for (const [field, entry] of fields) {
+                originals[key][field] = entry.original
+            }
+        }
+
+        return originals
+    }
+
     setError(key, field, messages) {
         const list = Array.isArray(messages) ? messages : [String(messages)]
 
