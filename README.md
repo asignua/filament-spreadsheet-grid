@@ -144,7 +144,8 @@ GridColumn::make('cost')->number()->visible(fn () => auth()->user()->isAdmin());
 ```
 
 A `select()` closure is evaluated **once per request** and shared by every cell. If the options depend on the row, ask for
-the record (`fn (Product $record) => ...`): the closure then runs once per cell, so keep it cheap.
+the record (`fn (Product $record) => ...`): the closure then runs once per cell, so keep it cheap. Each cell then carries
+its own list to the browser (`data-sg-options`), and the column config has none.
 
 Types normalise what comes from the clipboard: `1 250,5` and `1.250,50` are numbers, `так` / `yes` / `TRUE` are booleans,
 `02.10.2026` is a date, a select is matched by value first and by label second. An emptied cell becomes `null`
@@ -183,6 +184,9 @@ class ListProducts extends ListRecords
   alone and the others are saved; in `atomic()` mode a failing row (or a failing validation) writes nothing.
 - A `ValidationException` thrown from `saveUsing` is shown on the cells it names (an unknown field lands on the row).
   A `QueryException` is reported and shown as "The row could not be saved."
+  Only these two are isolated per row. Any other exception (a `DomainException` from your repository, a model event,
+  the `LogicException` below) is not caught: the whole batch transaction rolls back, nothing is saved, and the request
+  fails like any other server error. Turn domain refusals into a `ValidationException` to keep them on their row.
 - A column name does not have to be an attribute when you use `saveUsing` (`address.city` is just the key of the change);
   without `saveUsing`, a dotted name throws a `LogicException`.
 - The browser sends `[recordKey => [column => value]]` to `saveSpreadsheetGrid()`. The record must be reachable through the
@@ -191,10 +195,12 @@ class ListProducts extends ListRecords
   editing and saving and still be saved.
 - Notifications (`->notify(false)` silences them) report "N rows saved / not saved". Autosave requests notify only
   failures, so typing down a column does not stack a toast per cell.
-- **Concurrent edits are not overwritten silently.** With every changed cell the browser sends the value it loaded; when
+- **Concurrent edits are detected (best effort).** With every changed cell the browser sends the value it loaded; when
   the stored value is different now (another editor saved in between), that cell is refused with a message showing the
   current value. `->detectConflicts(false)` returns to last-write-wins. The check is per cell: two editors changing
-  different columns of one row do not conflict.
+  different columns of one row do not conflict. The check reads the records without a lock, before the write
+  transaction: two saves that overlap within those milliseconds can both pass it, and the later one wins. It catches
+  the realistic case (someone saved while you were editing), it is not a substitute for optimistic locking.
 - The transaction runs on the **model's own connection** (`$connection`), not the default one.
 
 ## Mode switch
