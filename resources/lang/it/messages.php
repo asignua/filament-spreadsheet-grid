@@ -14,8 +14,10 @@ return [
     'row_forbidden' => 'Non sei autorizzato a modificare questo record.',
     'not_editable' => 'Questa cella non è modificabile.',
     'too_many' => 'Troppe modifiche in una volta (al massimo :max righe).',
+    'too_many_cells' => 'Troppe modifiche in una volta (al massimo :max celle).',
     'atomic_aborted' => 'Non è stato salvato nulla perché altre righe contengono errori.',
     'save_failed' => 'Impossibile salvare la riga.',
+    'conflict' => 'Modificato da qualcun altro dopo il caricamento della pagina (ora: :value). Ricarica per vederlo.',
     'invalid_value' => 'Il valore non è valido.',
     'invalid_number' => ':attribute deve essere un numero.',
     'invalid_boolean' => ':attribute deve essere sì o no.',
@@ -32,5 +34,6 @@ return [
     'done' => 'Fatto',
     'discard_and_exit' => 'Annulla ed esci',
     'confirm_exit' => 'Uscire dalla modalità foglio di calcolo? Le modifiche non salvate andranno perse.',
+    'confirm_leave' => 'Uscire da questa pagina? Le modifiche non salvate andranno perse.',
     'mode_off' => 'La modalità foglio di calcolo è disattivata.',
 ];

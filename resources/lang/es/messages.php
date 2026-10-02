@@ -14,8 +14,10 @@ return [
     'row_forbidden' => 'No tienes permiso para editar este registro.',
     'not_editable' => 'Esta celda no es editable.',
     'too_many' => 'Demasiados cambios a la vez (máximo :max filas).',
+    'too_many_cells' => 'Demasiados cambios a la vez (como máximo :max celdas).',
     'atomic_aborted' => 'No se guardó nada porque otras filas tienen errores.',
     'save_failed' => 'No se pudo guardar la fila.',
+    'conflict' => 'Otra persona lo cambió después de cargar la página (ahora: :value). Recarga para verlo.',
     'invalid_value' => 'El valor no es válido.',
     'invalid_number' => ':attribute debe ser un número.',
     'invalid_boolean' => ':attribute debe ser sí o no.',
@@ -32,5 +34,6 @@ return [
     'done' => 'Hecho',
     'discard_and_exit' => 'Descartar y salir',
     'confirm_exit' => '¿Salir del modo hoja de cálculo? Se perderán los cambios sin guardar.',
+    'confirm_leave' => '¿Salir de esta página? Los cambios no guardados se perderán.',
     'mode_off' => 'El modo hoja de cálculo está desactivado.',
 ];

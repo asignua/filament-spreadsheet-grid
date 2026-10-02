@@ -14,8 +14,10 @@ return [
     'row_forbidden' => 'Je mag dit record niet bewerken.',
     'not_editable' => 'Deze cel is niet bewerkbaar.',
     'too_many' => 'Te veel wijzigingen tegelijk (maximaal :max rijen).',
+    'too_many_cells' => 'Te veel wijzigingen tegelijk (maximaal :max cellen).',
     'atomic_aborted' => 'Er is niets opgeslagen omdat andere rijen fouten bevatten.',
     'save_failed' => 'De rij kon niet worden opgeslagen.',
+    'conflict' => 'Door iemand anders gewijzigd sinds de pagina is geladen (nu: :value). Herlaad om het te zien.',
     'invalid_value' => 'De waarde is ongeldig.',
     'invalid_number' => ':attribute moet een getal zijn.',
     'invalid_boolean' => ':attribute moet ja of nee zijn.',
@@ -32,5 +34,6 @@ return [
     'done' => 'Klaar',
     'discard_and_exit' => 'Negeren en afsluiten',
     'confirm_exit' => 'Spreadsheetmodus verlaten? Niet-opgeslagen wijzigingen gaan verloren.',
+    'confirm_leave' => 'Deze pagina verlaten? Niet-opgeslagen wijzigingen gaan verloren.',
     'mode_off' => 'De spreadsheetmodus staat uit.',
 ];

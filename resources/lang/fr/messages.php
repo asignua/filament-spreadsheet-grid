@@ -14,8 +14,10 @@ return [
     'row_forbidden' => 'Vous n\'êtes pas autorisé à modifier cet enregistrement.',
     'not_editable' => 'Cette cellule n\'est pas modifiable.',
     'too_many' => 'Trop de modifications à la fois (au plus :max lignes).',
+    'too_many_cells' => 'Trop de modifications à la fois (au plus :max cellules).',
     'atomic_aborted' => 'Rien n\'a été enregistré car d\'autres lignes contiennent des erreurs.',
     'save_failed' => 'La ligne n\'a pas pu être enregistrée.',
+    'conflict' => 'Modifié par quelqu\'un d\'autre depuis le chargement de la page (maintenant : :value). Rechargez pour le voir.',
     'invalid_value' => 'La valeur n\'est pas valide.',
     'invalid_number' => ':attribute doit être un nombre.',
     'invalid_boolean' => ':attribute doit être oui ou non.',
@@ -32,5 +34,6 @@ return [
     'done' => 'Terminé',
     'discard_and_exit' => 'Annuler et quitter',
     'confirm_exit' => 'Quitter le mode tableur ? Les modifications non enregistrées seront perdues.',
+    'confirm_leave' => 'Quitter cette page ? Les modifications non enregistrées seront perdues.',
     'mode_off' => 'Le mode tableur est désactivé.',
 ];

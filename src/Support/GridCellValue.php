@@ -95,8 +95,18 @@ final class GridCellValue
         }
 
         if ($integer) {
-            // "5" and "5.0" are integers, "5.5" is left for the `integer` rule to reject.
-            return [preg_match('/^-?\d+(\.0+)?$/', $normalized) ? (int) $normalized : $normalized, null];
+            // "5" and "5.0" are integers, "5.5" is left for the `integer` rule to reject, and so
+            // is a number beyond PHP's int range ((int) would saturate it silently).
+            $whole = (string) preg_replace('/\.0+$/', '', $normalized);
+
+            if (!preg_match('/^-?\d+$/', $whole)) {
+                return [$normalized, null];
+            }
+
+            $canonical = (string) preg_replace('/^(-?)0+(?=\d)/', '$1', $whole);
+            $int = (int) $whole;
+
+            return [(string) $int === $canonical || $canonical === '-0' ? $int : $normalized, null];
         }
 
         // A numeric STRING: no float rounding for decimal columns.

@@ -16,6 +16,9 @@ use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
+use ReflectionFunction;
+use ReflectionNamedType;
+use stdClass;
 use Stringable;
 
 /**
@@ -57,6 +60,19 @@ class GridColumn extends Column
 
     protected mixed $emptyAs = null;
 
+    /**
+     * Evaluated select options, shared by the clones the saver makes per row (an object
+     * survives `clone` by reference). Only for options that do not depend on the record.
+     */
+    protected ?stdClass $optionsMemo = null;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->optionsMemo = new stdClass;
+    }
+
     public function text(): static
     {
         $this->cellType = GridCellType::Text;
@@ -85,17 +101,24 @@ class GridColumn extends Column
     }
 
     /**
+     * The options are evaluated once per request and reused for every cell, unless the
+     * closure asks for the record (`fn (Product $record) => ...`): then once per cell.
+     *
      * @param array<mixed>|class-string<BackedEnum>|Closure $options value => label, or a backed enum
      */
     public function select(array|Closure|string $options): static
     {
         $this->cellType = GridCellType::Select;
         $this->options = $options;
+        $this->optionsMemo = new stdClass;
 
         return $this;
     }
 
     /**
+     * For DATE columns. On a datetime column an edit stores the day only (the time becomes
+     * 00:00:00); use a text column, or `saveUsing()` to merge the time back.
+     *
      * @param string $displayFormat how the date is SHOWN (PHP tokens d, m, Y, y); stored and copied as Y-m-d
      */
     public function date(string $displayFormat = 'Y-m-d'): static
@@ -210,8 +233,9 @@ class GridColumn extends Column
     }
 
     /**
-     * Whether THIS record's cell is editable: the column flag, then the grid's authorization
-     * (the record must be set on the column, which the table does while rendering).
+     * The column's own `editable()` flag for THIS record (the record must be set on the
+     * column, which the table does while rendering). It does NOT include authorization:
+     * whether the user may edit the record is the grid's `canEdit()`.
      */
     public function isEditableForRecord(): bool
     {
@@ -222,6 +246,38 @@ class GridColumn extends Column
      * @return array<string, string> option value => label
      */
     public function getOptions(): array
+    {
+        if ($this->options instanceof Closure && $this->optionsDependOnRecord($this->options)) {
+            return $this->resolveOptions();
+        }
+
+        $memo = $this->optionsMemo ??= new stdClass;
+
+        /** @var array<string, string> */
+        return $memo->options ??= $this->resolveOptions();
+    }
+
+    protected function optionsDependOnRecord(Closure $closure): bool
+    {
+        foreach ((new ReflectionFunction($closure))->getParameters() as $parameter) {
+            if (in_array($parameter->getName(), ['record', 'state', 'rowLoop'], true)) {
+                return true;
+            }
+
+            $type = $parameter->getType();
+
+            if ($type instanceof ReflectionNamedType && !$type->isBuiltin() && is_a($type->getName(), Model::class, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function resolveOptions(): array
     {
         $options = $this->evaluate($this->options);
 

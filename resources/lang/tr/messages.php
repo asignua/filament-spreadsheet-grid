@@ -14,8 +14,10 @@ return [
     'row_forbidden' => 'Bu kaydı düzenleme izniniz yok.',
     'not_editable' => 'Bu hücre düzenlenemez.',
     'too_many' => 'Aynı anda çok fazla değişiklik (en fazla :max satır).',
+    'too_many_cells' => 'Aynı anda çok fazla değişiklik (en fazla :max hücre).',
     'atomic_aborted' => 'Diğer satırlarda hata olduğu için hiçbir şey kaydedilmedi.',
     'save_failed' => 'Satır kaydedilemedi.',
+    'conflict' => 'Sayfa yüklendikten sonra başka biri tarafından değiştirildi (şimdi: :value). Görmek için yeniden yükleyin.',
     'invalid_value' => 'Değer geçerli değil.',
     'invalid_number' => ':attribute bir sayı olmalıdır.',
     'invalid_boolean' => ':attribute evet veya hayır olmalıdır.',
@@ -32,5 +34,6 @@ return [
     'done' => 'Bitti',
     'discard_and_exit' => 'Vazgeç ve çık',
     'confirm_exit' => 'Tablo modundan çıkılsın mı? Kaydedilmemiş değişiklikler kaybolacak.',
+    'confirm_leave' => 'Bu sayfadan ayrılınsın mı? Kaydedilmemiş değişiklikler kaybolacak.',
     'mode_off' => 'Tablo modu kapalı.',
 ];

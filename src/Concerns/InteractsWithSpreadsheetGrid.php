@@ -10,8 +10,13 @@ use Asignua\FilamentSpreadsheetGrid\Support\GridResult;
 use Asignua\FilamentSpreadsheetGrid\Support\GridSaver;
 use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
+use Filament\Resources\Pages\ManageRelatedRecords;
+use Filament\Resources\Pages\Page as ResourcePage;
+use Filament\Resources\RelationManagers\RelationManager;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Livewire\Attributes\Locked;
 use LogicException;
 
 /**
@@ -29,7 +34,12 @@ trait InteractsWithSpreadsheetGrid
 {
     protected ?SpreadsheetGrid $spreadsheetGridInstance = null;
 
-    /** The user's choice when the grid is `toggleable()`; null = not chosen yet. */
+    /**
+     * The user's choice when the grid is `toggleable()`; null = not chosen yet. Changed only
+     * through {@see toggleSpreadsheetGrid()}. The mode is UX, not access control: whoever can
+     * call the component can switch it on, so authorization is what guards the writes.
+     */
+    #[Locked]
     public ?bool $spreadsheetGridActive = null;
 
     /**
@@ -42,7 +52,33 @@ trait InteractsWithSpreadsheetGrid
 
     public function spreadsheetGridConfig(): SpreadsheetGrid
     {
-        return $this->spreadsheetGridInstance ??= $this->spreadsheetGrid(SpreadsheetGrid::make());
+        return $this->spreadsheetGridInstance ??= $this->spreadsheetGrid(
+            SpreadsheetGrid::make()->componentAuthorization(fn (Model $record): ?bool => $this->canEditSpreadsheetGridRecord($record)),
+        );
+    }
+
+    /**
+     * The edit gate Filament itself uses on this component, or null when it has none (a
+     * table widget, a custom page): the grid then asks the `update` policy through Filament.
+     */
+    protected function canEditSpreadsheetGridRecord(Model $record): ?bool
+    {
+        // Relation managers and "manage related records" pages: read-only on View pages,
+        // then their own canEdit() (the related resource or the policy).
+        if ($this instanceof RelationManager && $this->isReadOnly()) {
+            return false;
+        }
+
+        if ($this instanceof RelationManager || $this instanceof ManageRelatedRecords) {
+            return $this->canEdit($record);
+        }
+
+        // Resource pages (List records): the resource's canEdit(), overrides included.
+        if ($this instanceof ResourcePage) {
+            return $this::getResource()::canEdit($record);
+        }
+
+        return null;
     }
 
     /**
@@ -95,7 +131,9 @@ trait InteractsWithSpreadsheetGrid
         $columns = [];
 
         foreach ($this->getTable()->getColumns() as $name => $column) {
-            if ($column instanceof GridColumn) {
+            // A hidden column (`->visible(fn ...)`, `->hidden(...)`) is neither sent to the
+            // browser nor writable. A column the user only toggled off stays editable.
+            if ($column instanceof GridColumn && !$column->isHidden()) {
                 $columns[(string) $name] = $column;
             }
         }
@@ -131,6 +169,7 @@ trait InteractsWithSpreadsheetGrid
                 'maxLength' => __('spreadsheet-grid::messages.client_max_length'),
                 'failed' => __('spreadsheet-grid::messages.client_failed'),
                 'confirmExit' => __('spreadsheet-grid::messages.confirm_exit'),
+                'confirmLeave' => __('spreadsheet-grid::messages.confirm_leave'),
             ],
         ];
     }
@@ -138,11 +177,13 @@ trait InteractsWithSpreadsheetGrid
     /**
      * The one endpoint of the grid: every pending edit in a single request.
      *
-     * @param array<mixed> $changes `[recordKey => [column => value]]`
+     * @param array<mixed> $changes   `[recordKey => [column => value]]`
+     * @param array<mixed> $originals `[recordKey => [column => value as loaded]]`, for conflict detection
+     * @param bool         $autosave  a save fired by autosave: only failures are notified
      *
      * @return array{saved: list<string>, errors: array<string, array<string, list<string>>>}
      */
-    public function saveSpreadsheetGrid(array $changes): array
+    public function saveSpreadsheetGrid(array $changes, array $originals = [], bool $autosave = false): array
     {
         $query = $this->getTable()->getQuery();
 
@@ -162,12 +203,13 @@ trait InteractsWithSpreadsheetGrid
             return $refused->toArray();
         }
 
-        $result = (new GridSaver($query, $this->spreadsheetGridColumns(), $grid, Filament::auth()->user()))->save($changes);
+        $result = (new GridSaver($query, $this->spreadsheetGridColumns(), $grid, Filament::auth()->user()))->save($changes, $originals);
 
         $this->flushCachedTableRecords();
 
-        if ($grid->shouldNotify()) {
-            $this->notifySpreadsheetGrid($result->savedCount(), $result->failedCount());
+        // One toast per committed cell would flood the screen in autosave mode.
+        if ($grid->shouldNotify() && !($autosave && $result->failedCount() === 0)) {
+            $this->notifySpreadsheetGrid($autosave ? 0 : $result->savedCount(), $result->failedCount());
         }
 
         return $result->toArray();

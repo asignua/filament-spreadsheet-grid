@@ -13,7 +13,9 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $id
  * @property string $name
  * @property string $sku
+ * @property int|null $shelf_id
  * @property string|null $price
+ * @property string|null $cost
  * @property int|null $stock
  * @property string|null $category
  * @property bool $available
@@ -29,6 +31,7 @@ class Product extends Model
     {
         return [
             'price' => 'decimal:2',
+            'cost' => 'decimal:2',
             'stock' => 'integer',
             'available' => 'boolean',
             'locked' => 'boolean',

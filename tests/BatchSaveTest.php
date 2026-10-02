@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Asignua\FilamentSpreadsheetGrid\Tests;
 
-use Livewire\Livewire;
 use Workbench\App\Filament\Resources\Products\Pages\ListAtomicProducts;
 use Workbench\App\Filament\Resources\Products\Pages\ListProducts;
 use Workbench\App\Models\Product;
@@ -19,10 +18,7 @@ class BatchSaveTest extends TestCase
      */
     private function save(array $changes, string $page = ListProducts::class): array
     {
-        /** @var ListProducts $list */
-        $list = Livewire::test($page)->instance();
-
-        return $list->saveSpreadsheetGrid($changes);
+        return $this->callSave($page, $changes);
     }
 
     public function test_it_saves_many_rows_and_cells_in_one_request_with_typed_values(): void

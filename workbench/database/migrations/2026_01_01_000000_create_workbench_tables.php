@@ -20,11 +20,19 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        Schema::create('shelves', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->timestamps();
+        });
+
         Schema::create('products', function (Blueprint $table): void {
             $table->id();
+            $table->foreignId('shelf_id')->nullable();
             $table->string('name');
             $table->string('sku')->unique();
             $table->decimal('price', 10, 2)->nullable();
+            $table->decimal('cost', 10, 2)->nullable();
             $table->unsignedInteger('stock')->nullable();
             $table->string('category')->nullable();
             $table->boolean('available')->default(true);

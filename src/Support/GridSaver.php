@@ -11,7 +11,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\QueryException;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use LogicException;
 
@@ -36,17 +35,22 @@ class GridSaver
         protected ?Authenticatable $user = null,
     ) {}
 
+    /** @var array<string, array<string, string>> the values the client loaded, for conflict detection */
+    protected array $originals = [];
+
     /**
-     * @param array<mixed> $changes
+     * @param array<mixed> $changes   `[recordKey => [column => rawValue]]`
+     * @param array<mixed> $originals `[recordKey => [column => value the client loaded]]` (optional)
      */
-    public function save(array $changes): GridResult
+    public function save(array $changes, array $originals = []): GridResult
     {
         $result = new GridResult;
         $changes = $this->sanitize($changes);
+        $this->originals = $this->sanitizeOriginals($originals);
 
-        if ($this->exceedsLimits($changes)) {
+        if (($limit = $this->exceededLimit($changes)) !== null) {
             foreach (array_keys($changes) as $key) {
-                $result->addError((string) $key, GridResult::ROW, __('spreadsheet-grid::messages.too_many', ['max' => $this->grid->getMaxRows()]));
+                $result->addError((string) $key, GridResult::ROW, $limit);
             }
 
             return $result;
@@ -127,15 +131,45 @@ class GridSaver
     }
 
     /**
-     * @param array<string, array<string, mixed>> $changes
+     * @param array<mixed> $originals
+     *
+     * @return array<string, array<string, string>>
      */
-    protected function exceedsLimits(array $changes): bool
+    protected function sanitizeOriginals(array $originals): array
     {
-        if (count($changes) > $this->grid->getMaxRows()) {
-            return true;
+        $clean = [];
+
+        foreach ($originals as $key => $fields) {
+            if (!is_array($fields)) {
+                continue;
+            }
+
+            foreach ($fields as $field => $value) {
+                if (is_string($field) && (is_scalar($value) || $value === null)) {
+                    $clean[(string) $key][$field] = (string) $value;
+                }
+            }
         }
 
-        return array_sum(array_map(count(...), $changes)) > $this->grid->getMaxCells();
+        return $clean;
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $changes
+     *
+     * @return string|null the message when the batch is over a limit
+     */
+    protected function exceededLimit(array $changes): ?string
+    {
+        if (count($changes) > $this->grid->getMaxRows()) {
+            return __('spreadsheet-grid::messages.too_many', ['max' => $this->grid->getMaxRows()]);
+        }
+
+        if (array_sum(array_map(count(...), $changes)) > $this->grid->getMaxCells()) {
+            return __('spreadsheet-grid::messages.too_many_cells', ['max' => $this->grid->getMaxCells()]);
+        }
+
+        return null;
     }
 
     /**
@@ -185,6 +219,13 @@ class GridSaver
                 continue;
             }
 
+            if (($conflict = $this->conflict($key, $field, $column)) !== null) {
+                $result->addError($key, $field, $conflict);
+                $failed = true;
+
+                continue;
+            }
+
             [$value, $errors] = $column->prepare($raw, $record);
 
             if ($errors !== []) {
@@ -201,6 +242,26 @@ class GridSaver
     }
 
     /**
+     * Last write must not win silently: when the client says what it loaded and the stored
+     * value is different now, someone else saved in between.
+     */
+    protected function conflict(string $key, string $field, GridColumn $column): ?string
+    {
+        if (!$this->grid->shouldDetectConflicts() || !isset($this->originals[$key][$field])) {
+            return null;
+        }
+
+        $column->clearCachedState();
+        $current = $column->toCellString($column->getState());
+
+        if ($current === $this->originals[$key][$field]) {
+            return null;
+        }
+
+        return __('spreadsheet-grid::messages.conflict', ['value' => $column->toDisplayString($current)]);
+    }
+
+    /**
      * One transaction for the batch, a savepoint per row: in partial mode a failing row
      * rolls back alone, in atomic mode a failing row rolls back the batch.
      *
@@ -214,12 +275,15 @@ class GridSaver
         }
 
         $atomic = $this->grid->isAtomic();
+        // The model's own connection: on the default one, a model with `$connection` would
+        // autocommit every row and "all or nothing" would be a lie.
+        $connection = $this->query->getModel()->getConnection();
 
         try {
-            DB::transaction(function () use ($ready, $records, $result, $atomic): void {
+            $connection->transaction(function () use ($ready, $records, $result, $atomic, $connection): void {
                 foreach ($ready as $key => $values) {
                     try {
-                        DB::transaction(fn () => $this->persist($records[$key], $values));
+                        $connection->transaction(fn () => $this->persist($records[$key], $values));
                     } catch (ValidationException $exception) {
                         $this->reject($result, (string) $key, $exception);
 

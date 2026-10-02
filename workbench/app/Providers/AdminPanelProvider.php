@@ -17,7 +17,9 @@ use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Workbench\App\Filament\Resources\Products\ProductResource;
+use Workbench\App\Filament\Resources\RestrictedProducts\RestrictedProductResource;
 use Workbench\App\Filament\Resources\ScopedProducts\ScopedProductResource;
+use Workbench\App\Filament\Resources\Shelves\ShelfResource;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -28,7 +30,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->resources([ProductResource::class, ScopedProductResource::class])
+            ->resources([ProductResource::class, ScopedProductResource::class, RestrictedProductResource::class, ShelfResource::class])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

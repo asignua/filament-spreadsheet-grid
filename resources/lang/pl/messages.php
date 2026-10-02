@@ -14,8 +14,10 @@ return [
     'row_forbidden' => 'Nie masz uprawnień do edycji tego rekordu.',
     'not_editable' => 'Ta komórka nie jest edytowalna.',
     'too_many' => 'Zbyt wiele zmian naraz (maksymalnie :max wierszy).',
+    'too_many_cells' => 'Zbyt wiele zmian naraz (najwyżej :max komórek).',
     'atomic_aborted' => 'Nic nie zapisano, ponieważ inne wiersze zawierają błędy.',
     'save_failed' => 'Nie udało się zapisać wiersza.',
+    'conflict' => 'Ktoś inny zmienił to po załadowaniu strony (teraz: :value). Odśwież, aby zobaczyć.',
     'invalid_value' => 'Wartość jest nieprawidłowa.',
     'invalid_number' => ':attribute musi być liczbą.',
     'invalid_boolean' => ':attribute musi być tak lub nie.',
@@ -32,5 +34,6 @@ return [
     'done' => 'Gotowe',
     'discard_and_exit' => 'Odrzuć i wyjdź',
     'confirm_exit' => 'Wyjść z trybu arkusza? Niezapisane zmiany zostaną utracone.',
+    'confirm_leave' => 'Opuścić tę stronę? Niezapisane zmiany zostaną utracone.',
     'mode_off' => 'Tryb arkusza jest wyłączony.',
 ];

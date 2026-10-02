@@ -14,8 +14,10 @@ return [
     'row_forbidden' => 'Você não tem permissão para editar este registro.',
     'not_editable' => 'Esta célula não é editável.',
     'too_many' => 'Muitas alterações de uma vez (no máximo :max linhas).',
+    'too_many_cells' => 'Alterações demais de uma vez (no máximo :max células).',
     'atomic_aborted' => 'Nada foi salvo porque outras linhas têm erros.',
     'save_failed' => 'Não foi possível salvar a linha.',
+    'conflict' => 'Alterado por outra pessoa depois que a página foi carregada (agora: :value). Recarregue para ver.',
     'invalid_value' => 'O valor não é válido.',
     'invalid_number' => ':attribute deve ser um número.',
     'invalid_boolean' => ':attribute deve ser sim ou não.',
@@ -32,5 +34,6 @@ return [
     'done' => 'Concluir',
     'discard_and_exit' => 'Descartar e sair',
     'confirm_exit' => 'Sair do modo planilha? As alterações não salvas serão perdidas.',
+    'confirm_leave' => 'Sair desta página? As alterações não salvas serão perdidas.',
     'mode_off' => 'O modo planilha está desativado.',
 ];

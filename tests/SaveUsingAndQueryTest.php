@@ -21,10 +21,7 @@ class SaveUsingAndQueryTest extends TestCase
      */
     private function save(array $changes): array
     {
-        /** @var ListScopedProducts $list */
-        $list = Livewire::test(ListScopedProducts::class)->instance();
-
-        return $list->saveSpreadsheetGrid($changes);
+        return $this->callSave(ListScopedProducts::class, $changes);
     }
 
     public function test_the_save_using_callback_receives_the_record_and_validated_typed_changes(): void

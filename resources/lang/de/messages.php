@@ -14,8 +14,10 @@ return [
     'row_forbidden' => 'Sie dürfen diesen Datensatz nicht bearbeiten.',
     'not_editable' => 'Diese Zelle ist nicht bearbeitbar.',
     'too_many' => 'Zu viele Änderungen auf einmal (höchstens :max Zeilen).',
+    'too_many_cells' => 'Zu viele Änderungen auf einmal (höchstens :max Zellen).',
     'atomic_aborted' => 'Es wurde nichts gespeichert, weil andere Zeilen Fehler haben.',
     'save_failed' => 'Die Zeile konnte nicht gespeichert werden.',
+    'conflict' => 'Seit dem Laden der Seite von jemand anderem geändert (jetzt: :value). Laden Sie neu, um es zu sehen.',
     'invalid_value' => 'Der Wert ist ungültig.',
     'invalid_number' => ':attribute muss eine Zahl sein.',
     'invalid_boolean' => ':attribute muss Ja oder Nein sein.',
@@ -32,5 +34,6 @@ return [
     'done' => 'Fertig',
     'discard_and_exit' => 'Verwerfen und beenden',
     'confirm_exit' => 'Tabellenmodus verlassen? Nicht gespeicherte Änderungen gehen verloren.',
+    'confirm_leave' => 'Diese Seite verlassen? Nicht gespeicherte Änderungen gehen verloren.',
     'mode_off' => 'Der Tabellenmodus ist aus.',
 ];

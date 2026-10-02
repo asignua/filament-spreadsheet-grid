@@ -18,6 +18,9 @@ class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
 
+    /** Who sees the `cost` column (stands for `auth()->user()->isAdmin()`). */
+    public static bool $showCost = false;
+
     public static function table(Table $table): Table
     {
         return $table
@@ -32,6 +35,7 @@ class ProductResource extends Resource
                 GridColumn::make('released_on')->date('d.m.Y'),
                 GridColumn::make('available')->boolean(),
                 GridColumn::make('locked')->editable(false)->boolean(),
+                GridColumn::make('cost')->number(min: 0)->visible(fn (): bool => static::$showCost),
             ])
             ->filters([TernaryFilter::make('available')])
             ->defaultSort('id');

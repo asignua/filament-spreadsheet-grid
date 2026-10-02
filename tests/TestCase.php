@@ -19,9 +19,12 @@ use Filament\Tables\TablesServiceProvider;
 use Filament\Widgets\WidgetsServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
+use Livewire\Features\SupportTesting\Testable;
+use Livewire\Livewire;
 use Livewire\LivewireServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 use RyanChandler\BladeCaptureDirective\BladeCaptureDirectiveServiceProvider;
+use Workbench\App\Filament\Resources\Products\ProductResource;
 use Workbench\App\Filament\Resources\ScopedProducts\Pages\ListScopedProducts;
 use Workbench\App\Models\Product;
 use Workbench\App\Models\User;
@@ -38,6 +41,7 @@ abstract class TestCase extends Orchestra
 
         Gate::policy(Product::class, ProductPolicy::class);
         ListScopedProducts::$calls = [];
+        ProductResource::$showCost = false;
 
         $this->actingAs(User::factory()->create());
         Filament::setCurrentPanel('admin');
@@ -68,12 +72,38 @@ abstract class TestCase extends Orchestra
     {
         $app['config']->set('app.key', 'base64:'.base64_encode(str_repeat('a', 32)));
         $app['config']->set('database.default', 'testing');
+        // A second database, for models that live on a connection of their own.
+        $app['config']->set('database.connections.secondary', [
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+            'prefix' => '',
+            'foreign_key_constraints' => true,
+        ]);
         $app['config']->set('auth.providers.users.model', User::class);
     }
 
     protected function defineDatabaseMigrations(): void
     {
         $this->loadMigrationsFrom(__DIR__.'/../workbench/database/migrations');
+    }
+
+    /**
+     * Saves through the real Livewire call path, like the browser's `$wire.saveSpreadsheetGrid()`:
+     * hydration, the method call, the re-render and the returned value.
+     *
+     * @param class-string                            $component
+     * @param array<mixed>                            $changes
+     * @param array<array-key, array<string, string>> $originals
+     * @param array<string, mixed>                    $params    mount parameters
+     *
+     * @return array{saved: list<string>, errors: array<string, array<string, list<string>>>}
+     */
+    protected function callSave(string $component, array $changes, array $originals = [], bool $autosave = false, array $params = [], ?Testable &$testable = null): array
+    {
+        $testable = Livewire::test($component, $params)->call('saveSpreadsheetGrid', $changes, $originals, $autosave);
+
+        /** @var array{saved: list<string>, errors: array<string, array<string, list<string>>>} */
+        return $testable->effects['returns'][0];
     }
 
     /**

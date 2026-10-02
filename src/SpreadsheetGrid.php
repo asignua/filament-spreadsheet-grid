@@ -6,6 +6,9 @@ namespace Asignua\FilamentSpreadsheetGrid;
 
 use Closure;
 use Filament\Facades\Filament;
+
+use function Filament\get_authorization_response;
+
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
@@ -50,6 +53,14 @@ class SpreadsheetGrid
     protected ?Closure $saveUsing = null;
 
     protected ?Closure $authorizeUsing = null;
+
+    /**
+     * Set by the table component: its own Filament edit gate (`Resource::canEdit()`, a
+     * relation manager's `canEdit()` / `isReadOnly()`). Returns null when it has none.
+     */
+    protected ?Closure $componentAuthorization = null;
+
+    protected bool $detectConflicts = true;
 
     protected int $maxRows;
 
@@ -170,8 +181,11 @@ class SpreadsheetGrid
     }
 
     /**
-     * Who may edit a record. Default: the record's `update` policy ability (a model without
-     * a policy is editable, as in Filament resources).
+     * Who may edit a record, replacing the default. The default asks the same gate Filament
+     * asks for its Edit action: the resource's `canEdit()` on a resource page, the relation
+     * manager's `canEdit()` and `isReadOnly()` on a relation manager, and otherwise the
+     * record's `update` policy ability through Filament (a model without a policy is
+     * editable unless the panel uses `strictAuthorization()`).
      *
      * @param Closure(Model): bool $callback
      */
@@ -180,6 +194,34 @@ class SpreadsheetGrid
         $this->authorizeUsing = $callback;
 
         return $this;
+    }
+
+    /**
+     * @internal called by {@see Concerns\InteractsWithSpreadsheetGrid} with the component's own gate
+     *
+     * @param Closure(Model): ?bool $callback
+     */
+    public function componentAuthorization(?Closure $callback): static
+    {
+        $this->componentAuthorization = $callback;
+
+        return $this;
+    }
+
+    /**
+     * Refuse a cell whose stored value changed since the page was loaded (another editor
+     * saved in between), instead of overwriting it silently. On by default.
+     */
+    public function detectConflicts(bool $condition = true): static
+    {
+        $this->detectConflicts = $condition;
+
+        return $this;
+    }
+
+    public function shouldDetectConflicts(): bool
+    {
+        return $this->detectConflicts;
     }
 
     public function maxRows(int $rows): static
@@ -242,15 +284,29 @@ class SpreadsheetGrid
             return (bool) ($this->authorizeUsing)($record);
         }
 
-        $user ??= Filament::auth()->user();
+        $current = Filament::auth()->user();
 
-        $gate = Gate::forUser($user);
+        // Filament's own gates always speak for the logged-in user.
+        if ($user === null || $user === $current) {
+            if ($this->componentAuthorization instanceof Closure) {
+                $answer = ($this->componentAuthorization)($record);
 
-        // Like Filament's resources: no policy, no restriction.
-        if ($gate->getPolicyFor($record) === null) {
-            return true;
+                if ($answer !== null) {
+                    return (bool) $answer;
+                }
+            }
+
+            // Policy, `Gate::before()` and strict authorization, exactly as Filament decides.
+            return get_authorization_response('update', $record)->allowed();
         }
 
-        return $gate->allows('update', $record);
+        $gate = Gate::forUser($user);
+        $policy = $gate->getPolicyFor($record);
+
+        if ($policy !== null && method_exists($policy, 'update')) {
+            return $gate->allows('update', $record);
+        }
+
+        return !Filament::isAuthorizationStrict();
     }
 }

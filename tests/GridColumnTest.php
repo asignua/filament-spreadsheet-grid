@@ -6,6 +6,7 @@ namespace Asignua\FilamentSpreadsheetGrid\Tests;
 
 use Asignua\FilamentSpreadsheetGrid\Columns\GridColumn;
 use Asignua\FilamentSpreadsheetGrid\Support\GridCellValue;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\Rule;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -94,5 +95,38 @@ class GridColumnTest extends TestCase
         $this->assertSame('2026-10-02', $column->toCellString(now()->setDate(2026, 10, 2)));
         $this->assertSame('02.10.2026', $column->date('d.m.Y')->toDisplayString('2026-10-02'));
         $this->assertSame('2026-10-02', GridCellValue::formatDate('2026-10-02', 'Y-m-d'));
+    }
+
+    public function test_record_independent_options_are_evaluated_once_for_all_cells(): void
+    {
+        $calls = 0;
+        $column = GridColumn::make('a')->select(function () use (&$calls): array {
+            $calls++;
+
+            return ['x' => 'X'];
+        });
+
+        // The saver and the table work on clones of the column, one per row.
+        foreach (range(1, 5) as $ignored) {
+            (clone $column)->getOptions();
+            (clone $column)->prepare('x');
+        }
+
+        $this->assertSame(1, $calls);
+    }
+
+    public function test_record_dependent_options_are_evaluated_per_cell(): void
+    {
+        $calls = 0;
+        $column = GridColumn::make('a')->select(function (?Model $record) use (&$calls): array {
+            $calls++;
+
+            return ['x' => 'X'];
+        });
+
+        $column->getOptions();
+        $column->getOptions();
+
+        $this->assertSame(2, $calls);
     }
 }
