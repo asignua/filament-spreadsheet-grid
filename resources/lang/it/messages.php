@@ -1,0 +1,36 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+    'save_all' => 'Salva tutto',
+    'discard' => 'Annulla',
+    'autosave' => 'Salvataggio automatico',
+    'hint' => 'Frecce per muoversi · Invio, F2 o digitare modifica · Esc annulla · Ctrl+C / Ctrl+V copia e incolla · Ctrl+D riempie verso il basso',
+    'skipped_readonly' => 'Le celle di sola lettura sono state saltate',
+    'saved' => ':count riga salvata|:count righe salvate',
+    'failed' => ':count riga non salvata|:count righe non salvate',
+    'row_missing' => 'Questo record non è disponibile nella tabella.',
+    'row_forbidden' => 'Non sei autorizzato a modificare questo record.',
+    'not_editable' => 'Questa cella non è modificabile.',
+    'too_many' => 'Troppe modifiche in una volta (al massimo :max righe).',
+    'atomic_aborted' => 'Non è stato salvato nulla perché altre righe contengono errori.',
+    'save_failed' => 'Impossibile salvare la riga.',
+    'invalid_value' => 'Il valore non è valido.',
+    'invalid_number' => ':attribute deve essere un numero.',
+    'invalid_boolean' => ':attribute deve essere sì o no.',
+    'invalid_date' => ':attribute deve essere una data valida.',
+    'invalid_option' => ':attribute non è tra le opzioni disponibili.',
+    'client_required' => 'Questo campo è obbligatorio.',
+    'client_invalid' => 'Questo valore non è valido.',
+    'client_integer' => 'Inserisci un numero intero.',
+    'client_min' => 'Il minimo è :min.',
+    'client_max' => 'Il massimo è :max.',
+    'client_max_length' => 'Al massimo :max caratteri.',
+    'client_failed' => 'Richiesta non riuscita. Le modifiche sono conservate, riprova.',
+    'edit_as_spreadsheet' => 'Modifica come foglio di calcolo',
+    'done' => 'Fatto',
+    'discard_and_exit' => 'Annulla ed esci',
+    'confirm_exit' => 'Uscire dalla modalità foglio di calcolo? Le modifiche non salvate andranno perse.',
+    'mode_off' => 'La modalità foglio di calcolo è disattivata.',
+];

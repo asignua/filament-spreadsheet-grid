@@ -1,0 +1,36 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+    'save_all' => 'Tümünü kaydet',
+    'discard' => 'Vazgeç',
+    'autosave' => 'Otomatik kaydet',
+    'hint' => 'Oklar gezinir · Enter, F2 veya yazmak düzenler · Esc iptal eder · Ctrl+C / Ctrl+V kopyala ve yapıştır · Ctrl+D aşağı doldurur',
+    'skipped_readonly' => 'Salt okunur hücreler atlandı',
+    'saved' => ':count satır kaydedildi|:count satır kaydedildi',
+    'failed' => ':count satır kaydedilemedi|:count satır kaydedilemedi',
+    'row_missing' => 'Bu kayıt tabloda bulunmuyor.',
+    'row_forbidden' => 'Bu kaydı düzenleme izniniz yok.',
+    'not_editable' => 'Bu hücre düzenlenemez.',
+    'too_many' => 'Aynı anda çok fazla değişiklik (en fazla :max satır).',
+    'atomic_aborted' => 'Diğer satırlarda hata olduğu için hiçbir şey kaydedilmedi.',
+    'save_failed' => 'Satır kaydedilemedi.',
+    'invalid_value' => 'Değer geçerli değil.',
+    'invalid_number' => ':attribute bir sayı olmalıdır.',
+    'invalid_boolean' => ':attribute evet veya hayır olmalıdır.',
+    'invalid_date' => ':attribute geçerli bir tarih olmalıdır.',
+    'invalid_option' => ':attribute mevcut seçeneklerden biri değil.',
+    'client_required' => 'Bu alan zorunludur.',
+    'client_invalid' => 'Bu değer geçerli değil.',
+    'client_integer' => 'Bir tam sayı girin.',
+    'client_min' => 'En az :min olmalıdır.',
+    'client_max' => 'En çok :max olmalıdır.',
+    'client_max_length' => 'En fazla :max karakter.',
+    'client_failed' => 'İstek başarısız oldu. Değişiklikleriniz korundu, tekrar deneyin.',
+    'edit_as_spreadsheet' => 'Elektronik tablo olarak düzenle',
+    'done' => 'Bitti',
+    'discard_and_exit' => 'Vazgeç ve çık',
+    'confirm_exit' => 'Tablo modundan çıkılsın mı? Kaydedilmemiş değişiklikler kaybolacak.',
+    'mode_off' => 'Tablo modu kapalı.',
+];

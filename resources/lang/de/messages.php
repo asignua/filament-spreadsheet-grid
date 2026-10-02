@@ -1,0 +1,36 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+    'save_all' => 'Alle speichern',
+    'discard' => 'Verwerfen',
+    'autosave' => 'Automatisch speichern',
+    'hint' => 'Pfeiltasten bewegen · Enter, F2 oder Tippen bearbeitet · Esc bricht ab · Strg+C / Strg+V kopieren und einfügen · Strg+D füllt nach unten',
+    'skipped_readonly' => 'Schreibgeschützte Zellen wurden übersprungen',
+    'saved' => ':count Zeile gespeichert|:count Zeilen gespeichert',
+    'failed' => ':count Zeile nicht gespeichert|:count Zeilen nicht gespeichert',
+    'row_missing' => 'Dieser Datensatz ist in der Tabelle nicht verfügbar.',
+    'row_forbidden' => 'Sie dürfen diesen Datensatz nicht bearbeiten.',
+    'not_editable' => 'Diese Zelle ist nicht bearbeitbar.',
+    'too_many' => 'Zu viele Änderungen auf einmal (höchstens :max Zeilen).',
+    'atomic_aborted' => 'Es wurde nichts gespeichert, weil andere Zeilen Fehler haben.',
+    'save_failed' => 'Die Zeile konnte nicht gespeichert werden.',
+    'invalid_value' => 'Der Wert ist ungültig.',
+    'invalid_number' => ':attribute muss eine Zahl sein.',
+    'invalid_boolean' => ':attribute muss Ja oder Nein sein.',
+    'invalid_date' => ':attribute muss ein gültiges Datum sein.',
+    'invalid_option' => ':attribute gehört nicht zu den verfügbaren Optionen.',
+    'client_required' => 'Dieses Feld ist erforderlich.',
+    'client_invalid' => 'Dieser Wert ist ungültig.',
+    'client_integer' => 'Geben Sie eine ganze Zahl ein.',
+    'client_min' => 'Das Minimum ist :min.',
+    'client_max' => 'Das Maximum ist :max.',
+    'client_max_length' => 'Höchstens :max Zeichen.',
+    'client_failed' => 'Die Anfrage ist fehlgeschlagen. Ihre Änderungen bleiben erhalten, versuchen Sie es erneut.',
+    'edit_as_spreadsheet' => 'Als Tabelle bearbeiten',
+    'done' => 'Fertig',
+    'discard_and_exit' => 'Verwerfen und beenden',
+    'confirm_exit' => 'Tabellenmodus verlassen? Nicht gespeicherte Änderungen gehen verloren.',
+    'mode_off' => 'Der Tabellenmodus ist aus.',
+];

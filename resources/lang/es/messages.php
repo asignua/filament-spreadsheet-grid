@@ -1,0 +1,36 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+    'save_all' => 'Guardar todo',
+    'discard' => 'Descartar',
+    'autosave' => 'Autoguardado',
+    'hint' => 'Flechas para moverse · Enter, F2 o escribir edita · Esc cancela · Ctrl+C / Ctrl+V copiar y pegar · Ctrl+D rellena hacia abajo',
+    'skipped_readonly' => 'Se omitieron las celdas de solo lectura',
+    'saved' => ':count fila guardada|:count filas guardadas',
+    'failed' => ':count fila no guardada|:count filas no guardadas',
+    'row_missing' => 'Este registro no está disponible en la tabla.',
+    'row_forbidden' => 'No tienes permiso para editar este registro.',
+    'not_editable' => 'Esta celda no es editable.',
+    'too_many' => 'Demasiados cambios a la vez (máximo :max filas).',
+    'atomic_aborted' => 'No se guardó nada porque otras filas tienen errores.',
+    'save_failed' => 'No se pudo guardar la fila.',
+    'invalid_value' => 'El valor no es válido.',
+    'invalid_number' => ':attribute debe ser un número.',
+    'invalid_boolean' => ':attribute debe ser sí o no.',
+    'invalid_date' => ':attribute debe ser una fecha válida.',
+    'invalid_option' => ':attribute no es una de las opciones disponibles.',
+    'client_required' => 'Este campo es obligatorio.',
+    'client_invalid' => 'Este valor no es válido.',
+    'client_integer' => 'Introduce un número entero.',
+    'client_min' => 'El mínimo es :min.',
+    'client_max' => 'El máximo es :max.',
+    'client_max_length' => 'Máximo :max caracteres.',
+    'client_failed' => 'La solicitud falló. Tus cambios se conservan, inténtalo de nuevo.',
+    'edit_as_spreadsheet' => 'Editar como hoja de cálculo',
+    'done' => 'Hecho',
+    'discard_and_exit' => 'Descartar y salir',
+    'confirm_exit' => '¿Salir del modo hoja de cálculo? Se perderán los cambios sin guardar.',
+    'mode_off' => 'El modo hoja de cálculo está desactivado.',
+];

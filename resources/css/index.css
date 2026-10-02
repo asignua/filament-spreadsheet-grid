@@ -1,0 +1,105 @@
+/*
+ * Built into resources/dist/filament-spreadsheet-grid.css (npm run build:css) and registered with
+ * FilamentAsset, so the host needs no custom theme that scans this package.
+ *
+ * Filament's theme is only *referenced* (colours, spacing, the `dark` variant); nothing of it
+ * is emitted — the panel ships it. Only what the views and the rules below use ends up here.
+ */
+
+/*
+ * Without this line the `utilities` layer would be declared first and Filament's `base`
+ * (preflight) would win over every rule of this file.
+ */
+@layer theme, base, components, utilities;
+
+@reference '../../vendor/filament/filament/resources/css/theme.css';
+
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
+
+@source '../views';
+
+@layer components {
+    .sg-toolbar {
+        @apply border-b border-gray-200 px-4 py-3 dark:border-white/10;
+    }
+
+    .sg-toolbar-actions {
+        @apply flex flex-wrap items-center gap-2;
+    }
+
+    .sg-spinner {
+        @apply h-5 w-5;
+    }
+
+    .sg-autosave {
+        @apply flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300;
+    }
+
+    .sg-status {
+        @apply text-sm font-medium text-danger-600 dark:text-danger-400;
+    }
+
+    .sg-hint {
+        @apply mt-2 text-xs text-gray-500 dark:text-gray-400;
+    }
+
+    .sg-cell {
+        @apply relative block min-h-6 w-full cursor-cell px-3 py-2 text-sm text-gray-950 outline-none select-none dark:text-white;
+    }
+
+    .sg-cell[data-sg-readonly] {
+        @apply cursor-default text-gray-500 dark:text-gray-400;
+    }
+
+    .sg-cell.sg-selected {
+        @apply bg-primary-50 dark:bg-primary-400/10;
+    }
+
+    .sg-cell.sg-active {
+        @apply ring-2 ring-primary-600 ring-inset dark:ring-primary-400;
+    }
+
+    .sg-cell.sg-dirty {
+        @apply bg-warning-50 dark:bg-warning-400/10;
+    }
+
+    .sg-cell.sg-error {
+        @apply bg-danger-50 text-danger-700 dark:bg-danger-400/10 dark:text-danger-400;
+    }
+
+    /* The message of a failed cell: shown while it is the active one or hovered. */
+    .sg-cell.sg-error::after {
+        content: attr(data-sg-error);
+        @apply pointer-events-none absolute top-full left-0 z-20 hidden max-w-64 rounded-md bg-danger-600 px-2 py-1 text-xs font-normal whitespace-normal text-white shadow-lg;
+    }
+
+    .sg-cell.sg-error:hover::after,
+    .sg-cell.sg-error.sg-active::after {
+        @apply block;
+    }
+
+    /* Filament's alignEnd() only aligns the <td>; the cell is a full-width block inside a flex wrapper. */
+    .sg-plain {
+        @apply block w-full px-3 py-2 text-sm;
+    }
+
+    .fi-align-end > * > .sg-cell,
+    .fi-align-end > * > .sg-plain,
+    .fi-align-end .sg-editor {
+        @apply text-end;
+    }
+
+    .fi-align-center > * > .sg-cell,
+    .fi-align-center > * > .sg-plain,
+    .fi-align-center .sg-editor {
+        @apply text-center;
+    }
+
+    .sg-cell [hidden] {
+        @apply hidden;
+    }
+
+    .sg-editor {
+        @apply absolute inset-0 z-10 block h-full w-full border-0 bg-white px-3 py-2 text-sm text-gray-950 ring-2 ring-primary-600 outline-none ring-inset dark:bg-gray-900 dark:text-white dark:ring-primary-400;
+    }
+}

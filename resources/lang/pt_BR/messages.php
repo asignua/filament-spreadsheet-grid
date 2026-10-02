@@ -1,0 +1,36 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+    'save_all' => 'Salvar tudo',
+    'discard' => 'Descartar',
+    'autosave' => 'Salvamento automático',
+    'hint' => 'Setas movem · Enter, F2 ou digitar edita · Esc cancela · Ctrl+C / Ctrl+V copiar e colar · Ctrl+D preenche para baixo',
+    'skipped_readonly' => 'Células somente leitura foram ignoradas',
+    'saved' => ':count linha salva|:count linhas salvas',
+    'failed' => ':count linha não salva|:count linhas não salvas',
+    'row_missing' => 'Este registro não está disponível na tabela.',
+    'row_forbidden' => 'Você não tem permissão para editar este registro.',
+    'not_editable' => 'Esta célula não é editável.',
+    'too_many' => 'Muitas alterações de uma vez (no máximo :max linhas).',
+    'atomic_aborted' => 'Nada foi salvo porque outras linhas têm erros.',
+    'save_failed' => 'Não foi possível salvar a linha.',
+    'invalid_value' => 'O valor não é válido.',
+    'invalid_number' => ':attribute deve ser um número.',
+    'invalid_boolean' => ':attribute deve ser sim ou não.',
+    'invalid_date' => ':attribute deve ser uma data válida.',
+    'invalid_option' => ':attribute não é uma das opções disponíveis.',
+    'client_required' => 'Este campo é obrigatório.',
+    'client_invalid' => 'Este valor não é válido.',
+    'client_integer' => 'Informe um número inteiro.',
+    'client_min' => 'O mínimo é :min.',
+    'client_max' => 'O máximo é :max.',
+    'client_max_length' => 'No máximo :max caracteres.',
+    'client_failed' => 'A solicitação falhou. Suas alterações foram mantidas, tente novamente.',
+    'edit_as_spreadsheet' => 'Editar como planilha',
+    'done' => 'Concluir',
+    'discard_and_exit' => 'Descartar e sair',
+    'confirm_exit' => 'Sair do modo planilha? As alterações não salvas serão perdidas.',
+    'mode_off' => 'O modo planilha está desativado.',
+];

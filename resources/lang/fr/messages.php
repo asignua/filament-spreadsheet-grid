@@ -1,0 +1,36 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+    'save_all' => 'Tout enregistrer',
+    'discard' => 'Annuler',
+    'autosave' => 'Enregistrement automatique',
+    'hint' => 'Flèches pour se déplacer · Entrée, F2 ou la saisie modifie · Échap annule · Ctrl+C / Ctrl+V copier-coller · Ctrl+D remplit vers le bas',
+    'skipped_readonly' => 'Les cellules en lecture seule ont été ignorées',
+    'saved' => ':count ligne enregistrée|:count lignes enregistrées',
+    'failed' => ':count ligne non enregistrée|:count lignes non enregistrées',
+    'row_missing' => 'Cet enregistrement n\'est pas disponible dans le tableau.',
+    'row_forbidden' => 'Vous n\'êtes pas autorisé à modifier cet enregistrement.',
+    'not_editable' => 'Cette cellule n\'est pas modifiable.',
+    'too_many' => 'Trop de modifications à la fois (au plus :max lignes).',
+    'atomic_aborted' => 'Rien n\'a été enregistré car d\'autres lignes contiennent des erreurs.',
+    'save_failed' => 'La ligne n\'a pas pu être enregistrée.',
+    'invalid_value' => 'La valeur n\'est pas valide.',
+    'invalid_number' => ':attribute doit être un nombre.',
+    'invalid_boolean' => ':attribute doit être oui ou non.',
+    'invalid_date' => ':attribute doit être une date valide.',
+    'invalid_option' => ':attribute ne fait pas partie des options disponibles.',
+    'client_required' => 'Ce champ est obligatoire.',
+    'client_invalid' => 'Cette valeur n\'est pas valide.',
+    'client_integer' => 'Saisissez un nombre entier.',
+    'client_min' => 'Le minimum est :min.',
+    'client_max' => 'Le maximum est :max.',
+    'client_max_length' => 'Au plus :max caractères.',
+    'client_failed' => 'La requête a échoué. Vos modifications sont conservées, réessayez.',
+    'edit_as_spreadsheet' => 'Modifier comme un tableur',
+    'done' => 'Terminé',
+    'discard_and_exit' => 'Annuler et quitter',
+    'confirm_exit' => 'Quitter le mode tableur ? Les modifications non enregistrées seront perdues.',
+    'mode_off' => 'Le mode tableur est désactivé.',
+];

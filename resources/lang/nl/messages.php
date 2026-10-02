@@ -1,0 +1,36 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+    'save_all' => 'Alles opslaan',
+    'discard' => 'Negeren',
+    'autosave' => 'Automatisch opslaan',
+    'hint' => 'Pijltjes verplaatsen · Enter, F2 of typen bewerkt · Esc annuleert · Ctrl+C / Ctrl+V kopiëren en plakken · Ctrl+D vult omlaag',
+    'skipped_readonly' => 'Alleen-lezen cellen zijn overgeslagen',
+    'saved' => ':count rij opgeslagen|:count rijen opgeslagen',
+    'failed' => ':count rij niet opgeslagen|:count rijen niet opgeslagen',
+    'row_missing' => 'Dit record is niet beschikbaar in de tabel.',
+    'row_forbidden' => 'Je mag dit record niet bewerken.',
+    'not_editable' => 'Deze cel is niet bewerkbaar.',
+    'too_many' => 'Te veel wijzigingen tegelijk (maximaal :max rijen).',
+    'atomic_aborted' => 'Er is niets opgeslagen omdat andere rijen fouten bevatten.',
+    'save_failed' => 'De rij kon niet worden opgeslagen.',
+    'invalid_value' => 'De waarde is ongeldig.',
+    'invalid_number' => ':attribute moet een getal zijn.',
+    'invalid_boolean' => ':attribute moet ja of nee zijn.',
+    'invalid_date' => ':attribute moet een geldige datum zijn.',
+    'invalid_option' => ':attribute is geen van de beschikbare opties.',
+    'client_required' => 'Dit veld is verplicht.',
+    'client_invalid' => 'Deze waarde is ongeldig.',
+    'client_integer' => 'Voer een geheel getal in.',
+    'client_min' => 'Het minimum is :min.',
+    'client_max' => 'Het maximum is :max.',
+    'client_max_length' => 'Maximaal :max tekens.',
+    'client_failed' => 'Het verzoek is mislukt. Je wijzigingen blijven bewaard, probeer het opnieuw.',
+    'edit_as_spreadsheet' => 'Bewerken als spreadsheet',
+    'done' => 'Klaar',
+    'discard_and_exit' => 'Negeren en afsluiten',
+    'confirm_exit' => 'Spreadsheetmodus verlaten? Niet-opgeslagen wijzigingen gaan verloren.',
+    'mode_off' => 'De spreadsheetmodus staat uit.',
+];

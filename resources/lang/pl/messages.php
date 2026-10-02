@@ -1,0 +1,36 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+    'save_all' => 'Zapisz wszystko',
+    'discard' => 'Odrzuć',
+    'autosave' => 'Autozapis',
+    'hint' => 'Strzałki przesuwają · Enter, F2 lub pisanie edytuje · Esc anuluje · Ctrl+C / Ctrl+V kopiuje i wkleja · Ctrl+D wypełnia w dół',
+    'skipped_readonly' => 'Pominięto komórki tylko do odczytu',
+    'saved' => ':count wiersz zapisany|:count wiersze zapisane|:count wierszy zapisanych',
+    'failed' => ':count wiersz niezapisany|:count wiersze niezapisane|:count wierszy niezapisanych',
+    'row_missing' => 'Ten rekord nie jest dostępny w tabeli.',
+    'row_forbidden' => 'Nie masz uprawnień do edycji tego rekordu.',
+    'not_editable' => 'Ta komórka nie jest edytowalna.',
+    'too_many' => 'Zbyt wiele zmian naraz (maksymalnie :max wierszy).',
+    'atomic_aborted' => 'Nic nie zapisano, ponieważ inne wiersze zawierają błędy.',
+    'save_failed' => 'Nie udało się zapisać wiersza.',
+    'invalid_value' => 'Wartość jest nieprawidłowa.',
+    'invalid_number' => ':attribute musi być liczbą.',
+    'invalid_boolean' => ':attribute musi być tak lub nie.',
+    'invalid_date' => ':attribute musi być prawidłową datą.',
+    'invalid_option' => ':attribute nie jest jedną z dostępnych opcji.',
+    'client_required' => 'To pole jest wymagane.',
+    'client_invalid' => 'Ta wartość jest nieprawidłowa.',
+    'client_integer' => 'Wpisz liczbę całkowitą.',
+    'client_min' => 'Minimum to :min.',
+    'client_max' => 'Maksimum to :max.',
+    'client_max_length' => 'Najwyżej :max znaków.',
+    'client_failed' => 'Żądanie nie powiodło się. Zmiany zostały zachowane, spróbuj ponownie.',
+    'edit_as_spreadsheet' => 'Edytuj jak arkusz',
+    'done' => 'Gotowe',
+    'discard_and_exit' => 'Odrzuć i wyjdź',
+    'confirm_exit' => 'Wyjść z trybu arkusza? Niezapisane zmiany zostaną utracone.',
+    'mode_off' => 'Tryb arkusza jest wyłączony.',
+];

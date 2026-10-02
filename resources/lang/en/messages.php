@@ -1,0 +1,36 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+    'save_all' => 'Save all',
+    'discard' => 'Discard',
+    'autosave' => 'Autosave',
+    'hint' => 'Arrows move · Enter, F2 or typing edits · Esc cancels · Ctrl+C / Ctrl+V copy and paste · Ctrl+D fills down',
+    'skipped_readonly' => 'Read-only cells were skipped',
+    'saved' => ':count row saved|:count rows saved',
+    'failed' => ':count row not saved|:count rows not saved',
+    'row_missing' => 'This record is not available in the table.',
+    'row_forbidden' => 'You are not allowed to edit this record.',
+    'not_editable' => 'This cell is not editable.',
+    'too_many' => 'Too many changes at once (at most :max rows).',
+    'atomic_aborted' => 'Nothing was saved because other rows have errors.',
+    'save_failed' => 'The row could not be saved.',
+    'invalid_value' => 'The value is not valid.',
+    'invalid_number' => ':attribute must be a number.',
+    'invalid_boolean' => ':attribute must be yes or no.',
+    'invalid_date' => ':attribute must be a valid date.',
+    'invalid_option' => ':attribute is not one of the available options.',
+    'client_required' => 'This field is required.',
+    'client_invalid' => 'This value is not valid.',
+    'client_integer' => 'Enter a whole number.',
+    'client_min' => 'The minimum is :min.',
+    'client_max' => 'The maximum is :max.',
+    'client_max_length' => 'At most :max characters.',
+    'client_failed' => 'The request failed. Your changes are kept, try again.',
+    'edit_as_spreadsheet' => 'Edit as spreadsheet',
+    'done' => 'Done',
+    'discard_and_exit' => 'Discard and exit',
+    'confirm_exit' => 'Leave spreadsheet mode? Unsaved changes will be lost.',
+    'mode_off' => 'Spreadsheet mode is off.',
+];
