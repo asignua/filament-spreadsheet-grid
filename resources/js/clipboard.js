@@ -124,6 +124,22 @@ export function normalizeNumber(value) {
     return text
 }
 
+/**
+ * "1,250" / "1.000": one separator before exactly three digits reads as thousands in one locale
+ * and as decimals in another, and guessing wrong is a silent factor of 1000. Spaces and
+ * apostrophes are thousands marks only, so they do not make a value ambiguous. Same rule as
+ * GridCellValue::isAmbiguousNumber() on the server.
+ *
+ * @param {string} value
+ * @param {boolean} [dotIsDecimal] the value is in the machine form, where a dot is the decimal point
+ * @returns {boolean}
+ */
+export function isAmbiguousNumber(value, dotIsDecimal = false) {
+    const text = String(value ?? '').replace(/[\s\u00a0\u202f']/g, '')
+
+    return (dotIsDecimal ? /^-?[1-9]\d{0,2},\d{3}$/ : /^-?[1-9]\d{0,2}[.,]\d{3}$/).test(text)
+}
+
 const TRUE_WORDS = ['1', 'true', 'yes', 'y', 'on', 'x', '✓', '✔', 'так', 'да', 'ja', 'oui', 'si', 'sí', 'tak', 'evet', 'sim', 'ja']
 const FALSE_WORDS = ['0', 'false', 'no', 'n', 'off', '', '✗', '✘', 'ні', 'нет', 'nein', 'non', 'nee', 'nie', 'hayır', 'não']
 
@@ -177,14 +193,21 @@ export function parseDate(value) {
  *
  * @param {{type: string, options?: Array<{value: string, label: string}>}} column
  * @param {string} raw
+ * @param {{canonical?: boolean}} [options] canonical: the text is a value the grid itself holds
+ *        (an unchanged edit, a fill, its own copy), so a dot in a number is the decimal point
  * @returns {{ok: boolean, value: string}}  ok=false means the text is not valid for this type
  */
-export function coerceValue(column, raw) {
+export function coerceValue(column, raw, { canonical = false } = {}) {
     const text = raw === null || raw === undefined ? '' : String(raw)
 
     switch (column.type) {
         case 'number':
         case 'integer': {
+            // Integers have no machine form with three decimals, so there "1.000" stays ambiguous.
+            if (isAmbiguousNumber(text, canonical && column.type === 'number')) {
+                return { ok: false, value: text }
+            }
+
             const value = normalizeNumber(text)
 
             return { ok: value === '' || /^-?\d+(\.\d+)?$/.test(value), value }

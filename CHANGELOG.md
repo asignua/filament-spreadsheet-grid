@@ -29,5 +29,8 @@ All notable changes to `asignua/filament-spreadsheet-grid` are documented here.
 - Conflict detection is documented as best effort (no row lock); only `ValidationException` / `QueryException` are
   isolated per row, any other exception rolls back the batch.
 - Autosave notifies only failures; a failed request marks every sent row; `wire:navigate` asks before dropping edits.
+- Numbers with one separator before exactly three digits (`1,000`, `1.250`) are refused as ambiguous on the client and
+  the server instead of being read as decimals (a paste of thousands-separated values was saved 1000 times smaller);
+  values the grid itself holds keep the dot as the decimal point.
 - Client validation matches the server on `5.0` integers and on text length (code points); integers beyond PHP's range are
   rejected; the cell limit has its own message.

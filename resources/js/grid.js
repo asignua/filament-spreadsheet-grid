@@ -41,6 +41,7 @@ export class GridController {
         this.dragging = false
         this.saving = false
         this.skipped = 0
+        this.lastCopied = null
         this.cache = null
         this.scheduled = false
         this.queue = Promise.resolve()
@@ -204,15 +205,16 @@ export class GridController {
 
     /**
      * Set a cell from text typed or pasted by the user. Returns false when the cell is
-     * read-only (nothing is written).
+     * read-only (nothing is written). `canonical`: the text is a value the grid itself holds
+     * (a fill, its own copy), so "1.250" is 1.25 and not an ambiguous thousands mark.
      */
-    setValue(cell, raw) {
+    setValue(cell, raw, { canonical = false } = {}) {
         if (this.isReadonly(cell)) {
             return false
         }
 
         const column = this.columnOf(cell.field, cell.el)
-        const { ok, value } = coerceValue(column, raw)
+        const { ok, value } = coerceValue(column, raw, { canonical: canonical || raw === this.valueOf(cell) })
 
         this.changes.set(cell.key, cell.field, value, this.originalOf(cell))
 
@@ -416,7 +418,7 @@ export class GridController {
                 }
                 const plan = (effect.type === 'fillDown' ? fillDown : fillRight)(rect, read)
 
-                return this.assign(plan.map(({ row, col, value }) => ({ cell: this.cellAt(row, col), value })))
+                return this.assign(plan.map(({ row, col, value }) => ({ cell: this.cellAt(row, col), value, canonical: true })))
             }
 
             default:
@@ -453,12 +455,12 @@ export class GridController {
         let written = false
         let skipped = 0
 
-        for (const { cell, value } of assignments) {
+        for (const { cell, value, canonical = false } of assignments) {
             if (!cell) {
                 continue
             }
 
-            if (this.setValue(cell, value)) {
+            if (this.setValue(cell, value, { canonical })) {
                 written = true
             } else {
                 skipped++
@@ -565,7 +567,9 @@ export class GridController {
             rows.push(line)
         }
 
-        event.clipboardData.setData('text/plain', serializeTsv(rows))
+        // Remembered so that pasting it back is read in the machine form ("1.250" is 1.25).
+        this.lastCopied = serializeTsv(rows)
+        event.clipboardData.setData('text/plain', this.lastCopied)
         event.preventDefault()
 
         if (cut) {
@@ -578,7 +582,9 @@ export class GridController {
             return
         }
 
-        const matrix = parseTsv(event.clipboardData.getData('text/plain'))
+        const text = event.clipboardData.getData('text/plain')
+        const canonical = this.lastCopied !== null && text === this.lastCopied
+        const matrix = parseTsv(text)
         const rect = this.selection()
 
         if (matrix.length === 0 || !rect) {
@@ -588,7 +594,7 @@ export class GridController {
         event.preventDefault()
 
         const plan = pastePlan(matrix, rect, this.dims())
-        const written = this.assign(plan.map(({ row, col, value }) => ({ cell: this.cellAt(row, col), value })))
+        const written = this.assign(plan.map(({ row, col, value }) => ({ cell: this.cellAt(row, col), value, canonical })))
 
         // Select what was pasted, like a spreadsheet does.
         const last = plan[plan.length - 1]

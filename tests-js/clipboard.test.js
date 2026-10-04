@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { coerceValue, displayValue, formatDate, normalizeNumber, parseDate, parseTsv, serializeTsv } from '../resources/js/clipboard.js'
+import { coerceValue, displayValue, formatDate, isAmbiguousNumber, normalizeNumber, parseDate, parseTsv, serializeTsv } from '../resources/js/clipboard.js'
 
 test('parseTsv splits a plain block and drops the trailing line break', () => {
     assert.deepEqual(parseTsv('a\tb\nc\td\n'), [['a', 'b'], ['c', 'd']])
@@ -39,6 +39,28 @@ test('normalizeNumber handles spaces, nbsp, comma and thousands marks', () => {
     assert.equal(normalizeNumber('1.250,50'), '1250.50')
     assert.equal(normalizeNumber('1,250.50'), '1250.50')
     assert.equal(normalizeNumber('-3,2'), '-3.2')
+})
+
+test('one separator before exactly three digits is ambiguous and is not guessed', () => {
+    for (const text of ['1,000', '1.000', '1,250', '1.250', '-12,500', '250.000', '1 ,000']) {
+        assert.equal(isAmbiguousNumber(text), true, text)
+        assert.equal(coerceValue({ type: 'number' }, text).ok, false, text)
+        assert.equal(coerceValue({ type: 'integer' }, text).ok, false, text)
+    }
+
+    for (const text of ['0,125', '1,25', '1,2500', '1 000', '1.000,00', '1,000.50', '1000', '12345,678']) {
+        assert.equal(isAmbiguousNumber(text), false, text)
+    }
+
+    assert.deepEqual(coerceValue({ type: 'number' }, '0,125'), { ok: true, value: '0.125' })
+    assert.deepEqual(coerceValue({ type: 'integer' }, '1 000'), { ok: true, value: '1000' })
+    assert.deepEqual(coerceValue({ type: 'number' }, '1.000,00'), { ok: true, value: '1000.00' })
+})
+
+test('a value already in the machine form keeps its dot as the decimal point', () => {
+    assert.deepEqual(coerceValue({ type: 'number' }, '1.250', { canonical: true }), { ok: true, value: '1.250' })
+    // A comma never appears in the machine form, so it stays ambiguous.
+    assert.equal(coerceValue({ type: 'number' }, '1,250', { canonical: true }).ok, false)
 })
 
 test('parseDate accepts ISO and day-first formats, rejects impossible dates', () => {

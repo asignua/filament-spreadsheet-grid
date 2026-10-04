@@ -148,7 +148,10 @@ the record (`fn (Product $record) => ...`): the closure then runs once per cell,
 its own list to the browser (`data-sg-options`), and the column config has none.
 
 Types normalise what comes from the clipboard: `1 250,5` and `1.250,50` are numbers, `так` / `yes` / `TRUE` are booleans,
-`02.10.2026` is a date, a select is matched by value first and by label second. An emptied cell becomes `null`
+`02.10.2026` is a date, a select is matched by value first and by label second. One separator before exactly three digits (`1,000`,
+`1.250`) is thousands in one locale and decimals in another, so it is refused as an invalid number rather than guessed;
+`1 000`, `1.000,00` and `1,25` are unambiguous. Values the grid itself holds (an unchanged edit, fill down, its own
+copy pasted back) are in the machine form, where a dot is the decimal point, so a stored `1.250` keeps working. An emptied cell becomes `null`
 (`emptyAs()` changes that; `required()` makes it an error). The server repeats all of it, the browser is never trusted.
 
 `GridColumn` extends Filament's `Column`: `sortable()`, `searchable()`, `label()`, `toggleable()`, `alignEnd()` … work.

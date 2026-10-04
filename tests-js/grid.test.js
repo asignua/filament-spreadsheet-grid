@@ -17,8 +17,8 @@ const rowsData = [
     { key: '3', name: 'Three', price: '3.00', cat: '', ok: '0' },
 ]
 
-function html() {
-    const body = rowsData
+function html(rows = rowsData) {
+    const body = rows
         .map(
             (row) =>
                 `<tr>${order
@@ -33,8 +33,8 @@ function html() {
     return `<!doctype html><div class="fi-ta"><input id="search" /><table><tbody>${body}</tbody></table></div>`
 }
 
-function setup({ save, autosave = false, confirm } = {}) {
-    const dom = new JSDOM(html(), { pretendToBeVisual: true })
+function setup({ save, autosave = false, confirm, rows } = {}) {
+    const dom = new JSDOM(html(rows), { pretendToBeVisual: true })
     const { window } = dom
     const root = window.document.querySelector('.fi-ta')
     const status = {}
@@ -235,6 +235,48 @@ test('Ctrl+D fills the selection down from its first row', () => {
 
     assert.equal(g.cell('2', 'name').querySelector('.sg-display').textContent, 'One')
     assert.equal(g.cell('3', 'name').querySelector('.sg-display').textContent, 'One')
+})
+
+test('a pasted "1,000" is refused instead of being read as 1', () => {
+    const g = setup()
+
+    g.click(g.cell('1', 'price'))
+    g.paste('1,000\n1.000\n')
+
+    assert.equal(g.cell('1', 'price').getAttribute('data-sg-error'), 'Invalid')
+    assert.equal(g.status.errors, 1)
+})
+
+test('a stored "1.250" survives an unchanged edit, fill down and copy-paste inside the grid', () => {
+    const rows = rowsData.map((row) => ({ ...row, price: row.key === '1' ? '1.250' : row.price, readonly: [] }))
+    const g = setup({ rows })
+
+    g.click(g.cell('1', 'price'))
+    g.key(g.active(), 'Enter')
+    g.key(g.root.querySelector('[data-sg-editor]'), 'Enter')
+    assert.equal(g.cell('1', 'price').getAttribute('data-sg-error'), null)
+
+    g.click(g.cell('1', 'price'))
+    g.click(g.cell('2', 'price'), { shiftKey: true })
+    g.key(g.active(), 'd', { ctrlKey: true })
+    assert.equal(g.cell('2', 'price').querySelector('.sg-display').textContent, '1.250')
+    assert.equal(g.cell('2', 'price').getAttribute('data-sg-error'), null)
+
+    g.click(g.cell('1', 'price'))
+    const copied = g.copy()
+
+    g.click(g.cell('3', 'price'))
+    g.paste(copied)
+    assert.equal(g.cell('3', 'price').querySelector('.sg-display').textContent, '1.250')
+    assert.equal(g.cell('3', 'price').getAttribute('data-sg-error'), null)
+    assert.equal(g.status.errors, 0)
+
+    // The same text typed by hand is still ambiguous.
+    g.click(g.cell('3', 'price'))
+    g.key(g.active(), 'Enter')
+    g.type('2.500')
+    g.key(g.root.querySelector('[data-sg-editor]'), 'Enter')
+    assert.equal(g.cell('3', 'price').getAttribute('data-sg-error'), 'Invalid')
 })
 
 test('Delete clears the selected cells', () => {

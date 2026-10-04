@@ -63,6 +63,21 @@ final class GridCellValue
     }
 
     /**
+     * "1,250" / "1.000": one separator before exactly three digits reads as thousands in one
+     * locale and as decimals in another, and guessing wrong is a silent factor of 1000. Spaces
+     * and apostrophes are thousands marks only, so they do not make a value ambiguous.
+     *
+     * @param bool $dotIsDecimal the browser sends numbers in the machine form, where a dot is
+     *                           always the decimal point ("1.250" from a decimal(8,3) column)
+     */
+    public static function isAmbiguousNumber(string $value, bool $dotIsDecimal = false): bool
+    {
+        $text = (string) preg_replace('/[\s\x{00a0}\x{202f}\']/u', '', $value);
+
+        return (bool) preg_match($dotIsDecimal ? '/^-?[1-9]\d{0,2},\d{3}$/' : '/^-?[1-9]\d{0,2}[.,]\d{3}$/', $text);
+    }
+
+    /**
      * ISO date formatted with PHP-style d/m/Y/y tokens; anything else is returned as is.
      */
     public static function formatDate(string $iso, string $format): string
@@ -88,6 +103,12 @@ final class GridCellValue
      */
     private static function number(string $text, bool $integer): array
     {
+        // A decimal column keeps "1.250" (the machine form the browser sends); an integer column
+        // has no machine form with three decimals, so there "1.000" can only be a thousands mark.
+        if (self::isAmbiguousNumber($text, dotIsDecimal: !$integer)) {
+            return [null, 'invalid_number'];
+        }
+
         $normalized = self::normalizeNumber(trim($text));
 
         if (!preg_match('/^-?\d+(\.\d+)?$/', $normalized)) {
