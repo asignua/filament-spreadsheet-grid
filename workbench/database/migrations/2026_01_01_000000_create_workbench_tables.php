@@ -41,5 +41,12 @@ return new class extends Migration
             $table->boolean('archived')->default(false);
             $table->timestamps();
         });
+
+        // A pivot with its own key: Filament's allowDuplicates() mode keys rows by it.
+        Schema::create('product_shelf', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('shelf_id');
+            $table->foreignId('product_id');
+        });
     }
 };

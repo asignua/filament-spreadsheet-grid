@@ -9,6 +9,7 @@ use Filament\Facades\Filament;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 use LogicException;
+use Throwable;
 use Workbench\App\Filament\Resources\Products\Pages\ListProducts;
 use Workbench\App\Filament\Resources\Products\Pages\ListToggleProducts;
 use Workbench\App\Filament\Resources\Products\ProductResource;
@@ -16,6 +17,7 @@ use Workbench\App\Filament\Resources\RestrictedProducts\Pages\ListRestrictedProd
 use Workbench\App\Filament\Resources\Shelves\Pages\EditShelf;
 use Workbench\App\Filament\Resources\Shelves\Pages\ViewShelf;
 use Workbench\App\Filament\Resources\Shelves\RelationManagers\ProductsRelationManager;
+use Workbench\App\Filament\Resources\Shelves\RelationManagers\StockedProductsRelationManager;
 use Workbench\App\Models\Shelf;
 use Workbench\App\Models\User;
 
@@ -95,6 +97,29 @@ class AuthorizationTest extends TestCase
         $this->assertSame([(string) $a->id], $result['saved']);
         $this->assertArrayHasKey('*', $result['errors'][(string) $locked->id]);
         $this->assertSame('Renamed', $a->fresh()?->name);
+    }
+
+    public function test_a_table_keyed_by_pivot_keys_is_refused_instead_of_writing_by_the_wrong_key(): void
+    {
+        $shelf = $this->shelf();
+        $a = $this->product('A');
+        $b = $this->product('B');
+        // The pivot key of B's row equals A's id: looked up by the model key, the edit would land on A.
+        $shelf->stockedProducts()->attach($b->id, ['id' => $a->id]);
+
+        try {
+            $this->callSave(StockedProductsRelationManager::class, [(string) $a->id => ['name' => 'Hacked']], params: [
+                'ownerRecord' => $shelf,
+                'pageClass' => EditShelf::class,
+            ]);
+            $this->fail('A pivot-keyed table should be refused.');
+        } catch (Throwable $e) {
+            // Refused already while rendering (wrapped in a ViewException); the save repeats the check.
+            $this->assertStringContainsString('allowDuplicates()', $e->getMessage());
+        }
+
+        $this->assertSame('Product A', $a->fresh()?->name);
+        $this->assertSame('Product B', $b->fresh()?->name);
     }
 
     public function test_strict_authorization_does_not_treat_a_missing_policy_as_allow(): void

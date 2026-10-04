@@ -271,8 +271,8 @@ Over a limit nothing is saved and every row gets a message.
 - **`date()` is for DATE columns.** On a datetime column an edit stores the day only and the time becomes `00:00:00`;
   use a text column, or `saveUsing()` to merge the time back.
 - **Paste only fills the rows on the page**; raise `->defaultPaginationPageOption()` for bigger sheets.
-- **Tables with pivot record keys** (`BelongsToMany` with a pivot key) are not supported: the save looks records up by the
-  model key.
+- **Tables with pivot record keys** (`BelongsToMany` with `allowDuplicates()`) are not supported: the save looks records
+  up by the model key, so the grid throws a `LogicException` on render and on save instead of writing by the wrong key.
 - The table query must be an Eloquent query. A `select()` that drops the primary key breaks the save.
 - Decimals are passed to the model as numeric **strings** (no float rounding); integers as `int`.
 

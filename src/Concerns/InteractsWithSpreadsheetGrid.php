@@ -128,6 +128,8 @@ trait InteractsWithSpreadsheetGrid
      */
     public function spreadsheetGridColumns(): array
     {
+        $this->ensureSpreadsheetGridSupportsTable();
+
         $columns = [];
 
         foreach ($this->getTable()->getColumns() as $name => $column) {
@@ -139,6 +141,18 @@ trait InteractsWithSpreadsheetGrid
         }
 
         return $columns;
+    }
+
+    /**
+     * A `BelongsToMany` table with `allowDuplicates()` keys its rows by the PIVOT key, while the
+     * save looks records up by the model key: a pivot key equal to another model's id would
+     * write to that model. Refused loudly on render and on save instead of guessing.
+     */
+    protected function ensureSpreadsheetGridSupportsTable(): void
+    {
+        if ($this->getTable()->hasPivotRecordKeys()) {
+            throw new LogicException('The spreadsheet grid does not support tables keyed by pivot keys (a BelongsToMany table with allowDuplicates()).');
+        }
     }
 
     /**
@@ -185,6 +199,8 @@ trait InteractsWithSpreadsheetGrid
      */
     public function saveSpreadsheetGrid(array $changes, array $originals = [], bool $autosave = false): array
     {
+        $this->ensureSpreadsheetGridSupportsTable();
+
         $query = $this->getTable()->getQuery();
 
         if (!($query instanceof Builder || $query instanceof Relation)) {
