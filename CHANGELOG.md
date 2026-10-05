@@ -2,7 +2,7 @@
 
 All notable changes to `asignua/filament-spreadsheet-grid` are documented here.
 
-## v1.0.0 - unreleased
+## v1.0.0 - 2026-10-05
 
 - `GridColumn` (text, number, integer, select, date, boolean) turns table cells into spreadsheet cells.
 - `InteractsWithSpreadsheetGrid` trait and `SpreadsheetGrid::toolbar()` header: one `saveSpreadsheetGrid()` endpoint, one request and one transaction per Save all, errors per row and cell.
