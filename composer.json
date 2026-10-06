@@ -1,6 +1,6 @@
 {
     "name": "asignua/filament-spreadsheet-grid",
-    "description": "Excel-style editing for Filament tables: keyboard navigation, TSV copy/paste, fill-down, multi-cell selection and one batch save with per-row errors.",
+    "description": "Edit a Filament 5 table the way people edit a spreadsheet: arrow-key navigation, typing over a cell, mouse and Shift range selection, copy and paste TSV blocks from Excel, Google Sheets or LibreOffice, fill down and right, text/number/select/date/boolean cells, inline per-cell validation, dirty-cell highlighting and one \"Save all\" in a single transaction with per-row errors. Keeps your query, filters, pagination, policies and write path.",
     "keywords": ["filament", "filament-plugin", "laravel", "spreadsheet", "grid", "inline-edit", "bulk-edit", "table"],
     "homepage": "https://github.com/asignua/filament-spreadsheet-grid",
     "support": {
