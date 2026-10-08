@@ -14,10 +14,6 @@
 
 @reference '../../vendor/filament/filament/resources/css/theme.css';
 
-@import 'tailwindcss/utilities.css' layer(utilities) source(none);
-
-@source '../views';
-
 @layer components {
     .sg-toolbar {
         @apply border-b border-gray-200 px-4 py-3 dark:border-white/10;

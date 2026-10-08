@@ -201,11 +201,13 @@ trait InteractsWithSpreadsheetGrid
     {
         $this->ensureSpreadsheetGridSupportsTable();
 
-        $query = $this->getTable()->getQuery();
+        $query = $this->getTable()->getQuery(isResolvingRecord: true);
 
         if (!($query instanceof Builder || $query instanceof Relation)) {
             throw new LogicException('The table has no Eloquent query to save through.');
         }
+
+        $this->applySpreadsheetGridFilterScopes($query);
 
         $grid = $this->spreadsheetGridConfig();
 
@@ -229,6 +231,25 @@ trait InteractsWithSpreadsheetGrid
         }
 
         return $result->toArray();
+    }
+
+    /**
+     * The filters' base queries only (TrashedFilter lifts the soft-delete scope there), as
+     * Filament resolves a record for its own actions: a row the user made visible with
+     * "With trashed" must stay saveable. The narrowing part of the filters is not applied.
+     *
+     * @param Builder<Model>|Relation<Model, Model, mixed> $query
+     */
+    protected function applySpreadsheetGridFilterScopes(Builder|Relation $query): void
+    {
+        $builder = $query instanceof Relation ? $query->getQuery() : $query;
+        $table = $this->getTable();
+
+        $table->withAppliedFiltersFormState(function () use ($table, $builder): void {
+            foreach ($table->getFilters() as $filter) {
+                $filter->applyToBaseQuery($builder, $this->getTableFilterState($filter->getName()) ?? []);
+            }
+        });
     }
 
     protected function notifySpreadsheetGrid(int $saved, int $failed): void

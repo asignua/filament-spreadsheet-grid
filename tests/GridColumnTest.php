@@ -57,6 +57,7 @@ class GridColumnTest extends TestCase
     {
         return [
             'required empty' => [GridColumn::make('a')->required(), ''],
+            'required whitespace only' => [GridColumn::make('a')->required(), '   '],
             'text too long' => [GridColumn::make('a')->maxLength(3), 'abcd'],
             'number not numeric' => [GridColumn::make('a')->number(), 'abc'],
             'number below min' => [GridColumn::make('a')->number(min: 0), '-1'],

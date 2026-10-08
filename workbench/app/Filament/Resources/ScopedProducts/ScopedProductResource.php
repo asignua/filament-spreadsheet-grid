@@ -7,6 +7,7 @@ namespace Workbench\App\Filament\Resources\ScopedProducts;
 use Asignua\FilamentSpreadsheetGrid\Columns\GridColumn;
 use Asignua\FilamentSpreadsheetGrid\SpreadsheetGrid;
 use Filament\Resources\Resource;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Workbench\App\Filament\Resources\ScopedProducts\Pages\ListScopedProducts;
@@ -23,7 +24,8 @@ class ScopedProductResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->where('archived', false);
+        // A removable scope (like SoftDeletes): only a filter's base query can lift it.
+        return parent::getEloquentQuery()->withGlobalScope('not_archived', fn (Builder $query): Builder => $query->where('archived', false));
     }
 
     public static function table(Table $table): Table
@@ -35,6 +37,11 @@ class ScopedProductResource extends Resource
                 GridColumn::make('price')->number(min: 0),
                 // Not an attribute: only the custom write path knows what to do with it.
                 GridColumn::make('label.upper')->text()->maxLength(10),
+            ])
+            ->filters([
+                Filter::make('with_archived')
+                    ->toggle()
+                    ->baseQuery(fn (Builder $query): Builder => $query->withoutGlobalScope('not_archived')),
             ]);
     }
 

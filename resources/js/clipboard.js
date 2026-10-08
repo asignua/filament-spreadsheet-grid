@@ -220,7 +220,7 @@ export function coerceValue(column, raw, { canonical = false } = {}) {
                 return { ok: true, value: '1' }
             }
 
-            return { ok: FALSE_WORDS.includes(word), value: '0' }
+            return FALSE_WORDS.includes(word) ? { ok: true, value: '0' } : { ok: false, value: text }
         }
 
         case 'date': {

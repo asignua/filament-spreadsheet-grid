@@ -90,6 +90,17 @@ export class GridController {
             { signal },
         )
 
+        // The open editor lives inside a cell Livewire renders; keep morph from removing it.
+        const livewire = win?.Livewire
+
+        if (livewire?.hook) {
+            livewire.hook('morph.removing', ({ el, skip }) => {
+                if (!this.abort.signal.aborted && el.hasAttribute?.('data-sg-editor') && this.root.contains(el)) {
+                    skip()
+                }
+            })
+        }
+
         // Livewire patches the DOM under us (filters, sort, pagination, a save): paint again.
         this.observer = new (win?.MutationObserver ?? MutationObserver)(() => this.schedulePaint())
         this.observer.observe(root, { childList: true, subtree: true })
@@ -214,9 +225,13 @@ export class GridController {
         }
 
         const column = this.columnOf(cell.field, cell.el)
-        const { ok, value } = coerceValue(column, raw, { canonical: canonical || raw === this.valueOf(cell) })
+        // An entry flagged invalid holds the RAW text the client could not read: it is never a
+        // value the grid itself holds, so it must not be read in the machine form (a second
+        // paste of the same "1.250" would otherwise turn into a valid 1.25).
+        const unreadable = this.changes.get(cell.key, cell.field)?.invalid === true
+        const { ok, value } = coerceValue(column, raw, { canonical: canonical || (!unreadable && raw === this.valueOf(cell)) })
 
-        this.changes.set(cell.key, cell.field, value, this.originalOf(cell))
+        this.changes.set(cell.key, cell.field, value, this.originalOf(cell), !ok)
 
         const problem = ok ? this.validate(column, value) : this.messages.invalid
 
@@ -231,8 +246,13 @@ export class GridController {
 
     /** The light client-side checks; the server has the final word. */
     validate(column, value) {
+        // Like Laravel's `required`: whitespace-only text is empty too.
+        if (column.required && value.trim() === '') {
+            return this.messages.required
+        }
+
         if (value === '') {
-            return column.required ? this.messages.required : null
+            return null
         }
 
         // Same as the server: "5.0" is the integer 5.
@@ -292,7 +312,18 @@ export class GridController {
                 editor.append(node)
             }
 
-            editor.value = this.valueOf(cell)
+            // A stored value the options do not list (record-dependent or filtered options) would
+            // leave the select blank, and leaving it would then clear the cell.
+            const current = this.valueOf(cell)
+
+            if (current !== '' && !(column.options ?? []).some((option) => String(option.value) === current)) {
+                const node = doc.createElement('option')
+                node.value = current
+                node.textContent = displayValue(column, current)
+                editor.append(node)
+            }
+
+            editor.value = current
         } else {
             editor = doc.createElement('input')
             editor.type = column.type === 'date' ? 'date' : 'text'
@@ -302,6 +333,11 @@ export class GridController {
             }
 
             editor.value = replace && column.type !== 'date' ? char : this.valueOf(cell)
+        }
+
+        // Leaving an editor the user did not change must not write its (possibly lossy) value.
+        if (!replace) {
+            editor.dataset.sgInitial = editor.value
         }
 
         editor.className = 'sg-editor'
@@ -332,7 +368,7 @@ export class GridController {
         editing.editor.remove()
         editing.cell.el.querySelector('.sg-display')?.removeAttribute('hidden')
 
-        if (commit) {
+        if (commit && text !== editing.editor.dataset.sgInitial) {
             this.setValue(editing.cell, text)
         }
 
@@ -411,14 +447,36 @@ export class GridController {
             case 'fillDown':
             case 'fillRight': {
                 const rect = this.selection()
+                // Canonicity follows each target's OWN source cell (not the source's text): a source
+                // the client could not read keeps its copies invalid, while a valid cell holding the
+                // same text elsewhere in the selection stays canonical.
+                const down = effect.type === 'fillDown'
+                const single = down ? rect.top === rect.bottom : rect.left === rect.right
                 const read = (row, col) => {
                     const cell = this.cellAt(row, col)
 
                     return cell ? this.valueOf(cell) : ''
                 }
-                const plan = (effect.type === 'fillDown' ? fillDown : fillRight)(rect, read)
+                const plan = (down ? fillDown : fillRight)(rect, read)
+                const sourceOf = ({ row, col }) => {
+                    if (down) {
+                        return this.cellAt(single ? rect.top - 1 : rect.top, col)
+                    }
 
-                return this.assign(plan.map(({ row, col, value }) => ({ cell: this.cellAt(row, col), value, canonical: true })))
+                    return this.cellAt(row, single ? rect.left - 1 : rect.left)
+                }
+
+                return this.assign(
+                    plan.map((step) => {
+                        const source = sourceOf(step)
+
+                        return {
+                            cell: this.cellAt(step.row, step.col),
+                            value: step.value,
+                            canonical: !(source && this.changes.get(source.key, source.field)?.invalid),
+                        }
+                    }),
+                )
             }
 
             default:
@@ -554,22 +612,37 @@ export class GridController {
         }
 
         const rows = []
+        // Per copied cell: true when it holds raw text the client could not read.
+        const mask = []
 
         for (let row = rect.top; row <= rect.bottom; row++) {
             const line = []
+            const flags = []
 
             for (let col = rect.left; col <= rect.right; col++) {
                 const cell = this.cellAt(row, col)
 
-                line.push(cell ? displayValue(this.columnOf(cell.field, cell.el), this.valueOf(cell), { forClipboard: true }) : '')
+                const invalid = cell !== null && cell !== undefined && this.changes.get(cell.key, cell.field)?.invalid === true
+
+                flags.push(invalid)
+
+                // An invalid entry holds raw text: it goes out as typed, never mapped to
+                // TRUE/FALSE, a label or a date format (that would turn it into a valid value).
+                line.push(cell ? (invalid ? String(this.valueOf(cell) ?? '') : displayValue(this.columnOf(cell.field, cell.el), this.valueOf(cell), { forClipboard: true })) : '')
             }
 
             rows.push(line)
+            mask.push(flags)
         }
 
         // Remembered so that pasting it back is read in the machine form ("1.250" is 1.25).
-        this.lastCopied = serializeTsv(rows)
-        event.clipboardData.setData('text/plain', this.lastCopied)
+        // Per cell: a copied cell holding raw text the client could not read is not canonical,
+        // pasting it back must be read (and refused) like any outside text; the valid cells
+        // of the same range stay canonical.
+        const tsv = serializeTsv(rows)
+
+        this.lastCopied = { tsv, mask }
+        event.clipboardData.setData('text/plain', tsv)
         event.preventDefault()
 
         if (cut) {
@@ -583,7 +656,7 @@ export class GridController {
         }
 
         const text = event.clipboardData.getData('text/plain')
-        const canonical = this.lastCopied !== null && text === this.lastCopied
+        const own = this.lastCopied !== null && text === this.lastCopied.tsv ? this.lastCopied.mask : null
         const matrix = parseTsv(text)
         const rect = this.selection()
 
@@ -594,7 +667,17 @@ export class GridController {
         event.preventDefault()
 
         const plan = pastePlan(matrix, rect, this.dims())
-        const written = this.assign(plan.map(({ row, col, value }) => ({ cell: this.cellAt(row, col), value, canonical })))
+        const single = matrix.length === 1 && matrix[0].length === 1
+        const canonicalAt = (row, col) => {
+            if (own === null) {
+                return false
+            }
+
+            const flag = single ? own[0]?.[0] : own[row - rect.top]?.[col - rect.left]
+
+            return flag !== true
+        }
+        const written = this.assign(plan.map(({ row, col, value }) => ({ cell: this.cellAt(row, col), value, canonical: canonicalAt(row, col) })))
 
         // Select what was pasted, like a spreadsheet does.
         const last = plan[plan.length - 1]
@@ -636,7 +719,10 @@ export class GridController {
         this.cache = null
 
         if (this.editing && !this.editing.editor.isConnected) {
-            this.editing = null
+            this.restoreEditor()
+        } else if (this.editing) {
+            // Morph restores the server markup of the cell, which shows the display span again.
+            this.editing.cell.el.querySelector('.sg-display')?.setAttribute('hidden', '')
         }
 
         const selection = this.selection()
@@ -685,6 +771,27 @@ export class GridController {
         this.notify()
     }
 
+    /**
+     * A Livewire re-render morphed the cell back to the server markup and took the open editor
+     * with it: put it back in the new cell element (keeping what was typed), or leave edit mode.
+     */
+    restoreEditor() {
+        const { cell, editor } = this.editing
+        const el = this.model().byKey.get(cell.key)?.cells.get(cell.field)
+
+        if (!el) {
+            this.editing = null
+            this.state = { ...this.state, mode: 'nav' }
+
+            return
+        }
+
+        el.querySelector('.sg-display')?.setAttribute('hidden', '')
+        el.append(editor)
+        this.editing = { cell: { ...cell, el }, editor }
+        editor.focus()
+    }
+
     notify() {
         this.onChange({
             dirty: this.changes.size,
@@ -709,7 +816,8 @@ export class GridController {
     }
 
     async send(auto = false) {
-        if (this.changes.size === 0) {
+        // Cells the client could not read (flagged invalid) stay behind with their error.
+        if (this.changes.sendableSize === 0) {
             return
         }
 

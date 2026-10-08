@@ -9,7 +9,6 @@ use Asignua\FilamentSpreadsheetGrid\SpreadsheetGrid;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\QueryException;
 use Illuminate\Validation\ValidationException;
@@ -99,7 +98,7 @@ class GridSaver
         }
 
         $this->write($ready, $records, $result);
-        $this->readBack($ready, $records, $result);
+        $this->readBack($ready, $result);
 
         return $result;
     }
@@ -268,23 +267,24 @@ class GridSaver
      * the next render shows, not the text that was sent.
      *
      * @param array<string, array<string, mixed>> $ready
-     * @param array<string, Model>                $records
      */
-    protected function readBack(array $ready, array $records, GridResult $result): void
+    protected function readBack(array $ready, GridResult $result): void
     {
-        foreach ($result->saved as $key) {
-            $record = $records[$key] ?? null;
+        $saved = array_values(array_filter($result->saved, fn (string $key): bool => isset($ready[$key])));
 
-            if (!$record instanceof Model || !isset($ready[$key])) {
-                continue;
-            }
+        if ($saved === []) {
+            return;
+        }
 
-            try {
-                // From the database: a mutator, a cast or saveUsing() may have stored
-                // something else than the in-memory model holds.
-                $record->refresh();
-            } catch (ModelNotFoundException) {
-                // saveUsing() deleted it (or moved it out of reach): nothing to read back.
+        // Through the query that loaded the rows (not Model::refresh()): attributes that come
+        // from it, such as pivot columns, are read back too. A row it no longer finds was
+        // deleted or moved out of reach by saveUsing(): nothing to read back.
+        $fresh = $this->records($saved);
+
+        foreach ($saved as $key) {
+            $record = $fresh[$key] ?? null;
+
+            if (!$record instanceof Model) {
                 continue;
             }
 
@@ -376,7 +376,10 @@ class GridSaver
             $record->setAttribute($field, $value);
         }
 
-        $record->save();
+        // A `saving` listener that returns false cancels the write without an exception.
+        if ($record->save() === false) {
+            throw ValidationException::withMessages([GridResult::ROW => __('spreadsheet-grid::messages.save_failed')]);
+        }
     }
 
     protected function reject(GridResult $result, string $key, ValidationException $exception): void

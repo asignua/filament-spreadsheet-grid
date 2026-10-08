@@ -9,7 +9,7 @@ const columns = {
     cat: { type: 'select', label: 'Category', options: [{ value: 'a', label: 'Alpha' }, { value: 'b', label: 'Beta' }] },
     ok: { type: 'boolean', label: 'OK' },
 }
-const order = ['name', 'price', 'cat', 'ok']
+const defaultOrder = ['name', 'price', 'cat', 'ok']
 
 const rowsData = [
     { key: '1', name: 'One', price: '1.00', cat: 'a', ok: '1' },
@@ -17,7 +17,7 @@ const rowsData = [
     { key: '3', name: 'Three', price: '3.00', cat: '', ok: '0' },
 ]
 
-function html(rows = rowsData) {
+function html(rows = rowsData, order = defaultOrder) {
     const body = rows
         .map(
             (row) =>
@@ -33,8 +33,8 @@ function html(rows = rowsData) {
     return `<!doctype html><div class="fi-ta"><input id="search" /><table><tbody>${body}</tbody></table></div>`
 }
 
-function setup({ save, autosave = false, confirm, rows } = {}) {
-    const dom = new JSDOM(html(rows), { pretendToBeVisual: true })
+function setup({ save, autosave = false, confirm, rows, cols, order = defaultOrder } = {}) {
+    const dom = new JSDOM(html(rows, order), { pretendToBeVisual: true })
     const { window } = dom
     const root = window.document.querySelector('.fi-ta')
     const status = {}
@@ -42,7 +42,7 @@ function setup({ save, autosave = false, confirm, rows } = {}) {
     const meta = []
     const controller = new GridController({
         root,
-        columns,
+        columns: cols ?? columns,
         order,
         autosave: () => autosave,
         save: async (payload, originals, auto) => {
@@ -555,4 +555,204 @@ test('after an in-flight re-edit, the next save carries the stored value as the 
 
     assert.deepEqual(g.sent[1], { 1: { price: '8' } })
     assert.deepEqual(g.meta[1].originals, { 1: { price: '7.00' } })
+})
+
+test('an ambiguous number is kept with its error and never sent', async () => {
+    const g = setup()
+
+    g.click(g.cell('1', 'price'))
+    g.paste('1.250')
+    assert.equal(g.cell('1', 'price').getAttribute('data-sg-error'), 'Invalid')
+    await g.controller.save()
+    assert.equal(g.sent.length, 0)
+    assert.equal(g.status.errors, 1)
+    assert.equal(g.status.dirty, 1)
+})
+
+test('an unknown boolean word is not sent as false', async () => {
+    const g = setup()
+
+    g.click(g.cell('1', 'ok'))
+    g.paste('maybe')
+    assert.equal(g.cell('1', 'ok').getAttribute('data-sg-error'), 'Invalid')
+    await g.controller.save()
+    assert.equal(g.sent.length, 0)
+})
+
+test('whitespace-only text fails a required column', () => {
+    const g = setup()
+
+    g.click(g.cell('1', 'name'))
+    g.paste('   ')
+    assert.equal(g.cell('1', 'name').getAttribute('data-sg-error'), 'Required')
+})
+
+test('leaving an untouched editor writes nothing', () => {
+    const g = setup()
+
+    g.click(g.cell('3', 'cat'))
+    g.key(g.active(), 'Enter')
+    g.key(g.root.querySelector('[data-sg-editor]'), 'Enter')
+    assert.equal(g.status.dirty, 0)
+})
+
+test('a morph that removes the open editor puts it back', () => {
+    const g = setup()
+
+    g.click(g.cell('1', 'name'))
+    g.key(g.active(), 'Enter')
+    const editor = g.root.querySelector('[data-sg-editor]')
+    editor.value = 'Typed'
+    editor.remove()
+    g.controller.paint()
+    assert.equal(g.root.querySelector('[data-sg-editor]'), editor)
+    assert.equal(editor.value, 'Typed')
+})
+
+test('pasting the same ambiguous number twice stays invalid and unsent', async () => {
+    const g = setup()
+
+    g.click(g.cell('1', 'price'))
+    g.paste('1.250')
+    g.paste('1.250')
+    assert.equal(g.cell('1', 'price').getAttribute('data-sg-error'), 'Invalid')
+    await g.controller.save()
+    assert.equal(g.sent.length, 0)
+    assert.equal(g.status.errors, 1)
+})
+
+test('fill down from an invalid cell copies the error, not a valid value', async () => {
+    const g = setup()
+
+    g.click(g.cell('1', 'price'))
+    g.paste('1.250')
+    g.key(g.cell('1', 'price'), 'ArrowDown')
+    g.click(g.cell('1', 'price'))
+    g.click(g.cell('3', 'price'), { shiftKey: true })
+    g.key(g.active(), 'd', { ctrlKey: true })
+    assert.equal(g.cell('3', 'price').getAttribute('data-sg-error'), 'Invalid')
+    await g.controller.save()
+    assert.equal(g.sent.length, 0)
+})
+
+test('copying an invalid cell and pasting it back stays invalid', async () => {
+    const g = setup()
+
+    g.click(g.cell('1', 'price'))
+    g.paste('1.250')
+    const text = g.copy()
+
+    g.click(g.cell('3', 'price'))
+    g.paste(text)
+    assert.equal(g.cell('3', 'price').getAttribute('data-sg-error'), 'Invalid')
+    await g.controller.save()
+    assert.equal(g.sent.length, 0)
+})
+
+test('fill down over an invalid target fixes it from a valid 3-decimal source', async () => {
+    const g = setup({ rows: [{ key: '1', name: 'One', price: '1.234', cat: 'a', ok: '1' }, rowsData[1], rowsData[2]] })
+
+    g.click(g.cell('3', 'price'))
+    g.paste('1.250')
+    assert.equal(g.cell('3', 'price').getAttribute('data-sg-error'), 'Invalid')
+    g.click(g.cell('1', 'price'))
+    g.click(g.cell('3', 'price'), { shiftKey: true })
+    g.key(g.active(), 'd', { ctrlKey: true })
+    assert.equal(g.cell('3', 'price').getAttribute('data-sg-error'), null)
+    await g.controller.save()
+    assert.equal(g.sent.length, 1)
+    assert.equal(g.sent[0]['3'].price, '1.234')
+})
+
+test('own-copy paste over an invalid target fixes it from a valid 3-decimal source', async () => {
+    const g = setup({ rows: [{ key: '1', name: 'One', price: '1.234', cat: 'a', ok: '1' }, rowsData[1], rowsData[2]] })
+
+    g.click(g.cell('3', 'price'))
+    g.paste('1.250')
+    g.click(g.cell('1', 'price'))
+    const text = g.copy()
+
+    g.click(g.cell('3', 'price'))
+    g.paste(text)
+    assert.equal(g.cell('3', 'price').getAttribute('data-sg-error'), null)
+    await g.controller.save()
+    assert.equal(g.sent[0]['3'].price, '1.234')
+})
+
+test('copying a mixed range keeps the valid 3-decimal cell canonical and the invalid one invalid', async () => {
+    const g = setup({ rows: [{ key: '1', name: 'One', price: '1.234', cat: 'a', ok: '1' }, { key: '2', name: 'Two', price: '2.00', cat: 'b', ok: '0' }, rowsData[2]] })
+
+    g.click(g.cell('2', 'price'))
+    g.paste('1.250')
+    g.click(g.cell('1', 'price'))
+    g.click(g.cell('2', 'price'), { shiftKey: true })
+    const text = g.copy()
+
+    g.click(g.cell('3', 'price'))
+    g.key(g.active(), 'ArrowDown')
+    g.paste(text)
+    assert.equal(g.cell('3', 'price').getAttribute('data-sg-error'), null)
+    await g.controller.save()
+    assert.equal(g.sent[0]['3'].price, '1.234')
+})
+
+test('pasting a mixed copied range leaves the invalid cell invalid', async () => {
+    const g = setup({ rows: [{ key: '1', name: 'One', price: '1.234', cat: 'a', ok: '1' }, { key: '2', name: 'Two', price: '2.00', cat: 'b', ok: '0' }, rowsData[2], { key: '4', name: 'Four', price: '5', cat: 'a', ok: '1' }, { key: '5', name: 'Five', price: '6', cat: 'a', ok: '1' }] })
+
+    g.click(g.cell('2', 'price'))
+    g.paste('1.250')
+    g.click(g.cell('1', 'price'))
+    g.click(g.cell('2', 'price'), { shiftKey: true })
+    const text = g.copy()
+
+    g.click(g.cell('4', 'price'))
+    g.paste(text)
+    assert.equal(g.cell('4', 'price').getAttribute('data-sg-error'), null)
+    assert.equal(g.cell('5', 'price').getAttribute('data-sg-error'), 'Invalid')
+})
+
+test('copying an invalid boolean puts the raw text on the clipboard and stays invalid', async () => {
+    const g = setup()
+
+    g.click(g.cell('1', 'ok'))
+    g.paste('maybe')
+    const text = g.copy()
+
+    assert.equal(text, 'maybe')
+    g.click(g.cell('3', 'ok'))
+    g.paste(text)
+    assert.equal(g.cell('3', 'ok').getAttribute('data-sg-error'), 'Invalid')
+    await g.controller.save()
+    assert.equal(g.sent.length, 0)
+})
+
+test('fill down: canonicity follows each source cell, not its text', async () => {
+    const g = setup({ rows: [{ key: '1', name: 'One', price: '1.234', cat: 'a', ok: '1' }, { key: '2', name: 'Two', price: '2.00', cat: 'b', ok: '0' }, rowsData[2]] })
+
+    g.click(g.cell('1', 'cat'))
+    g.paste('1.234')
+    assert.equal(g.cell('1', 'cat').getAttribute('data-sg-error'), 'Invalid')
+    g.click(g.cell('1', 'price'))
+    g.click(g.cell('2', 'cat'), { shiftKey: true })
+    g.key(g.active(), 'd', { ctrlKey: true })
+    assert.equal(g.cell('2', 'price').getAttribute('data-sg-error'), null)
+    assert.equal(g.cell('2', 'cat').getAttribute('data-sg-error'), 'Invalid')
+})
+
+test('fill right: canonicity follows each source cell, not its text', async () => {
+    const cols = { name: columns.name, price: columns.price, price2: { type: 'number', label: 'Price 2', min: 0 } }
+    const g = setup({
+        cols,
+        order: ['name', 'price', 'price2'],
+        rows: [{ key: '1', name: 'One', price: '1.00', price2: '0' }, { key: '2', name: 'Two', price: '1.250', price2: '0' }],
+    })
+
+    g.click(g.cell('1', 'price'))
+    g.paste('1.250')
+    assert.equal(g.cell('1', 'price').getAttribute('data-sg-error'), 'Invalid')
+    g.click(g.cell('1', 'price'))
+    g.click(g.cell('2', 'price2'), { shiftKey: true })
+    g.key(g.active(), 'r', { ctrlKey: true })
+    assert.equal(g.cell('1', 'price2').getAttribute('data-sg-error'), 'Invalid')
+    assert.equal(g.cell('2', 'price2').getAttribute('data-sg-error'), null)
 })

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Asignua\FilamentSpreadsheetGrid\Tests;
 
+use Asignua\FilamentSpreadsheetGrid\Columns\GridColumn;
 use Workbench\App\Filament\Resources\Products\Pages\ListAtomicProducts;
 use Workbench\App\Filament\Resources\Products\Pages\ListProducts;
 use Workbench\App\Filament\Resources\Products\ProductResource;
@@ -194,5 +195,43 @@ class BatchSaveTest extends TestCase
         ]);
 
         $this->assertSame([], $result['saved']);
+    }
+
+    public function test_a_string_rule_that_reads_its_column_from_the_attribute_name_works(): void
+    {
+        $this->product('TAKEN');
+
+        [, $errors] = GridColumn::make('sku')->rules(['unique:products'])->prepare('TAKEN');
+        [$value, $none] = GridColumn::make('sku')->rules(['unique:products'])->prepare('FREE');
+
+        $this->assertNotSame([], $errors);
+        $this->assertSame([], $none);
+        $this->assertSame('FREE', $value);
+    }
+
+    public function test_a_save_cancelled_by_a_model_event_is_not_reported_as_saved(): void
+    {
+        $a = $this->product('A');
+
+        Product::saving(fn (): bool => false);
+
+        $result = $this->save([(string) $a->id => ['name' => 'Refused']]);
+
+        $this->assertSame([], $result['saved']);
+        $this->assertArrayHasKey('*', $result['errors'][(string) $a->id]);
+        $this->assertSame('Product A', $a->fresh()?->name);
+    }
+
+    public function test_a_dotted_column_still_reports_its_validation_errors(): void
+    {
+        [$value, $errors] = GridColumn::make('meta.color')->required()->maxLength(3)->prepare('abcdef');
+        [, $blank] = GridColumn::make('meta.color')->required()->prepare('   ');
+        [$ok, $none] = GridColumn::make('meta.color')->required()->maxLength(3)->prepare('abc');
+
+        $this->assertNull($value);
+        $this->assertNotSame([], $errors);
+        $this->assertNotSame([], $blank);
+        $this->assertSame([], $none);
+        $this->assertSame('abc', $ok);
     }
 }

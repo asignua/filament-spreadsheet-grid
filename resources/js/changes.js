@@ -24,9 +24,13 @@ export class ChangeSet {
     }
 
     /**
+     * `invalid`: the client could not make sense of the text (an ambiguous number, an unknown
+     * word). The cell stays dirty and shows its error, but is never sent: the server would
+     * read the raw text its own way ("1.250" as 1.25).
+     *
      * @returns {boolean} whether the cell is dirty afterwards
      */
-    set(key, field, value, original) {
+    set(key, field, value, original, invalid = false) {
         const next = norm(value)
         const before = norm(original)
 
@@ -44,7 +48,7 @@ export class ChangeSet {
             this.rows.set(key, new Map())
         }
 
-        this.rows.get(key).set(field, { value: next, original: before })
+        this.rows.get(key).set(field, { value: next, original: before, invalid })
 
         return true
     }
@@ -83,15 +87,37 @@ export class ChangeSet {
     }
 
     /**
+     * Cells that are dirty and can be sent (not flagged `invalid`).
+     *
+     * @returns {number}
+     */
+    get sendableSize() {
+        let count = 0
+
+        for (const fields of this.rows.values()) {
+            for (const entry of fields.values()) {
+                if (!entry.invalid) {
+                    count++
+                }
+            }
+        }
+
+        return count
+    }
+
+    /**
      * @returns {Object<string, Object<string, string>>}  { recordKey: { field: value } }
      */
     toPayload() {
         const payload = {}
 
         for (const [key, fields] of this.rows) {
-            payload[key] = {}
-
             for (const [field, entry] of fields) {
+                if (entry.invalid) {
+                    continue
+                }
+
+                payload[key] ??= {}
                 payload[key][field] = entry.value
             }
         }
@@ -109,9 +135,12 @@ export class ChangeSet {
         const originals = {}
 
         for (const [key, fields] of this.rows) {
-            originals[key] = {}
-
             for (const [field, entry] of fields) {
+                if (entry.invalid) {
+                    continue
+                }
+
+                originals[key] ??= {}
                 originals[key][field] = entry.original
             }
         }
@@ -198,7 +227,12 @@ export class ChangeSet {
         this.inFlight = null
 
         for (const key of Object.keys(sent)) {
-            this.errors.delete(key)
+            // Only what was sent: a cell edited meanwhile keeps the error the client gave it.
+            for (const field of Object.keys(sent[key])) {
+                this.clearError(key, field)
+            }
+
+            this.clearError(key, ROW_FIELD)
 
             for (const [field, value] of Object.entries(sent[key])) {
                 const entry = this.get(key, field)

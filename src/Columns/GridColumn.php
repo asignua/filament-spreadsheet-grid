@@ -342,26 +342,30 @@ class GridColumn extends Column
             return [null, [__('spreadsheet-grid::messages.'.$problem, ['attribute' => $label])]];
         }
 
-        $rules = [];
+        // Laravel's `required` also rejects whitespace-only text, which normalize() keeps.
+        $rules = $this->isRequired() ? ['required'] : ($value === null ? ['nullable'] : []);
 
-        if ($value === null) {
-            $rules[] = $this->isRequired() ? 'required' : 'nullable';
-        } else {
-            $rules = $this->typeRules();
+        if ($value !== null) {
+            $rules = [...$rules, ...$this->typeRules()];
         }
 
         $rules = [...$rules, ...$this->getUserRules($record)];
 
-        // The validator reads the field by name; a dotted column name would be nested.
+        // Under the column's own name: rules such as `unique:products` or `exists:skus` read
+        // their column from the attribute. A dotted name is escaped in the rules key so it is not
+        // nested, but Laravel reports errors (and takes labels) under the unescaped name; there is
+        // a single attribute, so all errors are this column's.
+        $name = $this->getName();
+        $key = str_replace('.', '\\.', $name);
         $validator = Validator::make(
-            ['value' => $value],
-            ['value' => $rules],
+            [$name => $value],
+            [$key => $rules],
             [],
-            ['value' => $label],
+            [$name => $label],
         );
 
         if ($validator->fails()) {
-            return [null, array_values(array_map(strval(...), Arr::flatten($validator->errors()->get('value'))))];
+            return [null, array_values(array_map(strval(...), Arr::flatten($validator->errors()->toArray())))];
         }
 
         return [$value ?? $this->emptyAs, []];

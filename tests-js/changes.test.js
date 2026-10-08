@@ -163,3 +163,14 @@ test('editing back to the stored form during the save leaves the cell clean', ()
 
     assert.equal(changes.isDirty('1', 'price'), false)
 })
+
+test('applyResult keeps the error of a cell that was not sent', () => {
+    const set = new ChangeSet()
+
+    set.set('1', 'a', 'x', 'o')
+    set.set('1', 'b', 'abc', '', true)
+    set.setError('1', 'b', ['Invalid'])
+    set.applyResult({ 1: { a: 'x' } }, { saved: ['1'] })
+    assert.equal(set.errorCount, 1)
+    assert.deepEqual(set.toPayload(), {})
+})

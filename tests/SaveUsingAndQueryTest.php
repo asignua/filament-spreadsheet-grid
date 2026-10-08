@@ -125,4 +125,20 @@ class SaveUsingAndQueryTest extends TestCase
 
         $this->assertSame([(string) $hidden->id], $result['saved']);
     }
+
+    public function test_a_row_revealed_by_a_filters_base_query_can_be_saved(): void
+    {
+        $archived = $this->product('ARC', ['archived' => true]);
+        $changes = [(string) $archived->id => ['name' => 'Edited']];
+
+        $hidden = $this->save($changes);
+
+        $this->assertSame([], $hidden['saved']);
+
+        Livewire::test(ListScopedProducts::class)
+            ->set('tableFilters.with_archived.isActive', true)
+            ->call('saveSpreadsheetGrid', $changes, [], false);
+
+        $this->assertSame('Edited', $archived->fresh()?->name);
+    }
 }

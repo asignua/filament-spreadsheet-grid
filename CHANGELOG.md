@@ -2,6 +2,21 @@
 
 All notable changes to `asignua/filament-spreadsheet-grid` are documented here.
 
+## Unreleased
+
+- Dependencies: jsdom 30, esbuild 0.28 (dev); the built assets are unchanged.
+- A cell the client could not read (an ambiguous number such as `1.250`, an unknown boolean word) stays dirty with its error and is never sent; before, `number()` saved `1.250` as 1.25 and an unknown boolean as `false`.
+- A cell flagged invalid is never read back as the grid's own value: pasting the same ambiguous `1.250` twice, filling down/right from it or copying it and pasting it back keeps the error (before, the second entry became a valid 1.25, i.e. x1000 corruption). The server still cannot tell `1.250` typed by a user from `1.250` the grid holds, so it accepts it for `number()` columns; owner decision pending. Filling or pasting the grid's own copy over an invalid cell fixes it (a valid source such as `1.234` is read in the machine form), and copying an invalid cell puts its raw text on the clipboard (a boolean `maybe` is no longer turned into `FALSE`), so pasting it back stays invalid. Fill down/right is tracked per source cell (a valid `1.234` next to an invalid cell holding the same text still fills as valid), and so is copying: in a range mixing valid and invalid cells, the valid ones (a stored `1.234`) still paste in the machine form and only the invalid ones stay invalid.
+- A Livewire re-render no longer deletes the open cell editor (kept out of the morph, restored when it is gone).
+- Leaving a select or date editor that was not changed no longer clears a stored value the control cannot show; a stored value missing from the select options is listed.
+- User rules are validated under the column's own name, so `unique:products` / `exists:skus` string rules work.
+- Rows revealed by a filter's base query (`TrashedFilter` "With trashed") can be saved.
+- A save cancelled by a model event (`saving` returning `false`) is reported as failed, not saved.
+- `required()` rejects whitespace-only text, on the client and the server.
+- The read-back after a save goes through the table's query, so pivot / joined columns keep their value.
+- A save response no longer wipes client errors of cells that were not part of the request.
+- The compiled CSS no longer ships a stray `.table` utility.
+
 ## v1.0.0 - 2026-10-05
 
 - `GridColumn` (text, number, integer, select, date, boolean) turns table cells into spreadsheet cells.
@@ -31,8 +46,7 @@ All notable changes to `asignua/filament-spreadsheet-grid` are documented here.
 - Autosave notifies only failures; a failed request marks every sent row; `wire:navigate` asks before dropping edits.
 - A `BelongsToMany` table with `allowDuplicates()` (rows keyed by the pivot key) throws a `LogicException` on render
   and on save instead of looking records up by the model key and possibly writing to another record.
-- Numbers with one separator before exactly three digits (`1,000`, `1.250`) are refused as ambiguous on the client and
-  the server instead of being read as decimals (a paste of thousands-separated values was saved 1000 times smaller);
+- Numbers with one separator before exactly three digits (`1,000`, `1.250`) are refused as ambiguous on the client (never sent) instead of being read as decimals; the server refuses `1,000`-style values, while `1.250` in a `number()` column is stopped only on the client (a paste of thousands-separated values was saved 1000 times smaller);
   values the grid itself holds keep the dot as the decimal point.
 - Client validation matches the server on `5.0` integers and on text length (code points); integers beyond PHP's range are
   rejected; the cell limit has its own message.
