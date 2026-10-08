@@ -2,7 +2,7 @@
 
 All notable changes to `asignua/filament-spreadsheet-grid` are documented here.
 
-## Unreleased
+## v1.0.1 - 2026-10-08
 
 - Dependencies: jsdom 30, esbuild 0.28 (dev); the built assets are unchanged.
 - A cell the client could not read (an ambiguous number such as `1.250`, an unknown boolean word) stays dirty with its error and is never sent; before, `number()` saved `1.250` as 1.25 and an unknown boolean as `false`.
