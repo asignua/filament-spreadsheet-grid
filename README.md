@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/packagist/l/asignua/filament-spreadsheet-grid.svg?style=flat-square)](https://github.com/asignua/filament-spreadsheet-grid/blob/main/LICENSE.md)
 [![Plumb score](https://plumbphp.dev/badges/asignua/filament-spreadsheet-grid/composite.svg)](https://plumbphp.dev/asignua/filament-spreadsheet-grid)
 
-<img class="filament-hidden" src="https://raw.githubusercontent.com/asignua/filament-spreadsheet-grid/v1.0.0/art/cover.jpg" alt="Filament Spreadsheet Grid">
+<img class="filament-hidden" src="https://raw.githubusercontent.com/asignua/filament-spreadsheet-grid/v1.0.2/art/cover.jpg" alt="Filament Spreadsheet Grid">
 
 Edit a [Filament](https://filamentphp.com) 5 table the way people edit a spreadsheet: move with the keyboard, type over a
 cell, paste a block from Excel or Google Sheets, fill a column down, then press **Save all** once.
@@ -48,11 +48,11 @@ edited:
 
 ## Screenshots
 
-![Editing: dirty cells and a selected range](https://raw.githubusercontent.com/asignua/filament-spreadsheet-grid/v1.0.0/art/grid-editing.jpg)
+![Editing: dirty cells and a selected range](https://raw.githubusercontent.com/asignua/filament-spreadsheet-grid/v1.0.2/art/grid-editing.jpg)
 
-![Save all with per-cell errors](https://raw.githubusercontent.com/asignua/filament-spreadsheet-grid/v1.0.0/art/grid-errors.jpg)
+![Save all with per-cell errors](https://raw.githubusercontent.com/asignua/filament-spreadsheet-grid/v1.0.2/art/grid-errors.jpg)
 
-![Spreadsheet mode switched off](https://raw.githubusercontent.com/asignua/filament-spreadsheet-grid/v1.0.0/art/grid-mode-off.jpg)
+![Spreadsheet mode switched off](https://raw.githubusercontent.com/asignua/filament-spreadsheet-grid/v1.0.2/art/grid-mode-off.jpg)
 
 ## Requirements
 

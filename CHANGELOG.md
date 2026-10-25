@@ -2,6 +2,11 @@
 
 All notable changes to `asignua/filament-spreadsheet-grid` are documented here.
 
+## v1.0.2 - 2026-10-25
+
+- Screenshots and the cover carry the «made in asign» mark; README shows the Stand With Ukraine badge.
+- Dependencies: jsdom 30.1.3 (dev), CI actions.
+
 ## v1.0.1 - 2026-10-08
 
 - Dependencies: jsdom 30, esbuild 0.28 (dev); the built assets are unchanged.
