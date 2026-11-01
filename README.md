@@ -304,6 +304,15 @@ npm run build      # recompile resources/dist (Tailwind CLI + esbuild); commit t
 
 See [CHANGELOG.md](https://github.com/asignua/filament-spreadsheet-grid/blob/main/CHANGELOG.md).
 
+## More plugins by asign
+
+- [XLSX Export](https://filamentphp.com/plugins/asign-xlsx-export) — spreadsheet exports for tables
+- [Row Layout](https://filamentphp.com/plugins/asign-row-layout) — column manager for tables
+- [Record Lock](https://filamentphp.com/plugins/asign-record-lock) — stop two people editing the same record
+- [Themes](https://filamentphp.com/plugins/asign-themes) — per-user and per-panel colour themes
+
+All plugins: <https://filamentphp.com/plugins?q=asign>
+
 ## License
 
 MIT. See [LICENSE.md](https://github.com/asignua/filament-spreadsheet-grid/blob/main/LICENSE.md).
